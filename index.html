@@ -75,9 +75,6 @@
 
     <main class="flex-grow flex items-center justify-center p-4 py-8">
 
-        <!-- ============================================================
-             SCREEN 0: Teacher Login (Password Gate)
-             ============================================================ -->
         <div id="teacher-login-screen" class="screen w-full max-w-md">
             <div class="glass rounded-3xl p-8 text-center teacher-login-shield">
                 <div class="w-20 h-20 rounded-full bg-indigo-900/50 border border-indigo-700/50 flex items-center justify-center mx-auto mb-5 text-4xl pulse-ring">👨‍🏫</div>
@@ -102,12 +99,8 @@
             </div>
         </div>
 
-        <!-- ============================================================
-             SCREEN 1: Quiz Studio (Teacher's HQ)
-             ============================================================ -->
         <div id="host-studio-screen" class="screen hidden w-full max-w-6xl">
             <div class="glass rounded-3xl p-6 md:p-8">
-                <!-- Header Row -->
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div>
                         <h2 class="text-2xl font-black text-indigo-300">📁 คลังแบบทดสอบ</h2>
@@ -127,24 +120,20 @@
                     </div>
                 </div>
 
-                <!-- CSV Drag-Drop Zone -->
                 <div id="csv-drop-zone" class="border-2 border-dashed border-slate-700 rounded-2xl p-4 mb-5 text-center text-xs text-slate-500 transition cursor-pointer hover:border-indigo-500/60 hover:bg-indigo-950/20">
                     📎 ลากวางไฟล์ .csv ที่นี่เพื่อนำเข้าทันที
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                    <!-- Left: Quiz List -->
                     <div class="lg:col-span-2 bg-slate-900/50 rounded-2xl border border-slate-800 p-5">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="font-bold text-slate-200">ชุดแบบทดสอบทั้งหมด</h3>
                             <span id="quiz-count" class="text-xs bg-indigo-900/60 border border-indigo-800/40 text-indigo-300 py-1 px-3 rounded-full font-bold">0 ชุด</span>
                         </div>
                         <div id="quiz-list-container" class="space-y-2 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin">
-                            <!-- quiz items render here -->
-                        </div>
+                            </div>
                     </div>
 
-                    <!-- Right: Tips & Quick Action -->
                     <div class="bg-slate-900/30 rounded-2xl border border-slate-800 p-5 flex flex-col justify-between">
                         <div>
                             <h4 class="font-bold text-yellow-400 mb-3 flex items-center gap-2">💡 คู่มือการใช้งาน</h4>
@@ -168,13 +157,9 @@
             </div>
         </div>
 
-        <!-- ============================================================
-             SCREEN 2: Host Lobby (QR + PIN + Players)
-             ============================================================ -->
         <div id="host-lobby-screen" class="screen hidden w-full max-w-5xl">
             <div class="glass rounded-3xl p-6 md:p-8">
                 <div class="grid grid-cols-1 md:grid-cols-5 gap-5 mb-6">
-                    <!-- QR Code Panel -->
                     <div class="md:col-span-2 bg-slate-900/60 rounded-2xl border border-slate-800 p-5 flex flex-col items-center justify-center gap-3">
                         <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">สแกนเข้าเล่นได้เลย</p>
                         <div id="lobby-qrcode" class="bg-white p-3 rounded-2xl shadow-lg cursor-pointer hover:scale-105 transition-transform" title="คลิกเพื่อขยาย QR Code"></div>
@@ -189,7 +174,6 @@
                         </div>
                     </div>
 
-                    <!-- PIN + URL Panel -->
                     <div class="md:col-span-3 bg-slate-900/60 rounded-2xl border border-slate-800 p-5 flex flex-col justify-center">
                         <p class="text-slate-400 text-sm mb-1">รหัส Game PIN</p>
                         <h2 id="host-pin-display" class="text-5xl md:text-6xl font-black tracking-widest text-yellow-400 mb-3">------</h2>
@@ -223,14 +207,10 @@
             </div>
         </div>
 
-        <!-- ============================================================
-             SCREEN 3: Player Join
-             ============================================================ -->
         <div id="player-join-screen" class="screen hidden w-full max-w-md">
             <div class="glass rounded-3xl p-7">
                 <h2 class="text-2xl font-black text-center mb-6 text-emerald-400">🎮 เข้าร่วมการแข่งขัน</h2>
 
-                <!-- Avatar Selection -->
                 <div class="mb-5">
                     <p class="text-xs text-slate-400 font-bold mb-2 text-center uppercase tracking-wider">เลือกอวาตาร์ของคุณ</p>
                     <div class="bg-slate-900/60 rounded-2xl border border-slate-800 p-3">
@@ -259,9 +239,6 @@
             </div>
         </div>
 
-        <!-- ============================================================
-             SCREEN 4: Player Lobby (Waiting Room)
-             ============================================================ -->
         <div id="player-lobby-screen" class="screen hidden w-full max-w-md text-center">
             <div class="glass rounded-3xl p-8">
                 <div id="player-lobby-avatar" class="text-7xl mb-3 block">🐯</div>
@@ -276,12 +253,8 @@
             </div>
         </div>
 
-        <!-- ============================================================
-             SCREEN 5: Host Question Screen
-             ============================================================ -->
         <div id="host-question-screen" class="screen hidden w-full max-w-5xl">
             <div class="glass rounded-3xl p-6">
-                <!-- Top bar -->
                 <div class="flex justify-between items-center mb-4">
                     <div class="flex items-center gap-3">
                         <span class="bg-indigo-900/60 border border-indigo-800/40 text-indigo-300 py-1.5 px-4 rounded-full text-xs font-bold">
@@ -297,12 +270,10 @@
                     </div>
                 </div>
 
-                <!-- Question Text -->
                 <div class="bg-slate-900/60 rounded-2xl border border-slate-800 p-5 mb-5 min-h-[80px] flex items-center justify-center">
                     <h2 id="host-question-text" class="text-2xl md:text-3xl font-bold text-center">คำถาม...</h2>
                 </div>
 
-                <!-- Options Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
                     <div id="container-opt-0" class="flex items-center bg-red-700/80 p-4 rounded-xl text-xl font-semibold shadow border border-red-800/50">
                         <span class="text-2xl mr-3 shrink-0">▲</span> <span id="opt-text-0">-</span>
@@ -318,7 +289,6 @@
                     </div>
                 </div>
 
-                <!-- Realtime Answer Bar Chart -->
                 <div class="bg-slate-900/50 rounded-2xl border border-slate-800 p-4 mb-4">
                     <div class="flex justify-between items-center mb-2">
                         <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">📊 การตอบสดแบบเรียลไทม์</h4>
@@ -357,16 +327,25 @@
             </div>
         </div>
 
-        <!-- ============================================================
-             SCREEN 6: Player Answer Buttons
-             ============================================================ -->
         <div id="player-question-screen" class="screen hidden w-full max-w-xl">
-            <p class="text-slate-400 text-sm text-center mb-4">มองจอโปรเจคเตอร์แล้วกดตอบ:</p>
-            <div class="grid grid-cols-2 gap-4 h-[280px]">
-                <button data-opt="0" class="btn-answer-opt bg-red-500 hover:bg-red-400 active:scale-95 text-white font-black text-5xl rounded-2xl flex justify-center items-center transition shadow-xl">▲</button>
-                <button data-opt="1" class="btn-answer-opt bg-blue-500 hover:bg-blue-400 active:scale-95 text-white font-black text-5xl rounded-2xl flex justify-center items-center transition shadow-xl">◆</button>
-                <button data-opt="2" class="btn-answer-opt bg-yellow-500 hover:bg-yellow-400 active:scale-95 text-slate-900 font-black text-5xl rounded-2xl flex justify-center items-center transition shadow-xl">●</button>
-                <button data-opt="3" class="btn-answer-opt bg-green-500 hover:bg-green-400 active:scale-95 text-white font-black text-5xl rounded-2xl flex justify-center items-center transition shadow-xl">■</button>
+            <p class="text-slate-400 text-sm text-center mb-4">มองจอโปรเจคเตอร์แล้วกดตอบ หรืออ่านตัวเลือกด้านล่าง:</p>
+            <div class="grid grid-cols-2 gap-4 h-[320px]">
+                <button data-opt="0" class="btn-answer-opt bg-red-500 hover:bg-red-400 active:scale-95 text-white rounded-2xl flex flex-col justify-center items-center transition shadow-xl overflow-hidden p-2">
+                    <span class="font-black text-4xl mb-1">▲</span>
+                    <span class="opt-text-player font-bold text-sm md:text-base leading-tight break-words w-full text-center drop-shadow-md"></span>
+                </button>
+                <button data-opt="1" class="btn-answer-opt bg-blue-500 hover:bg-blue-400 active:scale-95 text-white rounded-2xl flex flex-col justify-center items-center transition shadow-xl overflow-hidden p-2">
+                    <span class="font-black text-4xl mb-1">◆</span>
+                    <span class="opt-text-player font-bold text-sm md:text-base leading-tight break-words w-full text-center drop-shadow-md"></span>
+                </button>
+                <button data-opt="2" class="btn-answer-opt bg-yellow-500 hover:bg-yellow-400 active:scale-95 text-slate-900 rounded-2xl flex flex-col justify-center items-center transition shadow-xl overflow-hidden p-2">
+                    <span class="font-black text-4xl mb-1">●</span>
+                    <span class="opt-text-player font-bold text-sm md:text-base leading-tight break-words w-full text-center"></span>
+                </button>
+                <button data-opt="3" class="btn-answer-opt bg-green-500 hover:bg-green-400 active:scale-95 text-white rounded-2xl flex flex-col justify-center items-center transition shadow-xl overflow-hidden p-2">
+                    <span class="font-black text-4xl mb-1">■</span>
+                    <span class="opt-text-player font-bold text-sm md:text-base leading-tight break-words w-full text-center drop-shadow-md"></span>
+                </button>
             </div>
             <div id="player-locked-msg" class="hidden mt-5 p-5 glass rounded-2xl text-center">
                 <p class="text-xl font-bold text-yellow-400">✅ ล็อคคำตอบแล้ว!</p>
@@ -374,9 +353,6 @@
             </div>
         </div>
 
-        <!-- ============================================================
-             SCREEN 7: Host Leaderboard
-             ============================================================ -->
         <div id="host-leaderboard-screen" class="screen hidden w-full max-w-3xl">
             <div class="glass rounded-3xl p-7">
                 <h2 class="text-2xl font-black text-center mb-1 text-indigo-300">🏆 อันดับประจำข้อ</h2>
@@ -390,9 +366,6 @@
             </div>
         </div>
 
-        <!-- ============================================================
-             SCREEN 8: Player Answer Feedback
-             ============================================================ -->
         <div id="player-feedback-screen" class="screen hidden w-full max-w-md text-center">
             <div id="feedback-card" class="rounded-3xl p-8 border transition">
                 <div id="feedback-icon" class="text-7xl mb-3">🎉</div>
@@ -405,14 +378,10 @@
             </div>
         </div>
 
-        <!-- ============================================================
-             SCREEN 9: Host End Screen (Podium + Analytics)
-             ============================================================ -->
         <div id="host-end-screen" class="screen hidden w-full max-w-5xl">
             <div class="glass rounded-3xl p-7">
                 <h2 class="text-3xl font-black text-center mb-8 text-yellow-400">🎊 สรุปผลการแข่งขัน</h2>
 
-                <!-- Podium -->
                 <div class="flex flex-col sm:flex-row items-end justify-center gap-4 mb-8 min-h-[220px]">
                     <div class="w-full sm:w-44 bg-slate-700/30 p-4 rounded-t-2xl border-t-4 border-slate-400 flex flex-col items-center" style="height:160px">
                         <div class="text-3xl mb-1">🥈</div>
@@ -434,9 +403,7 @@
                     </div>
                 </div>
 
-                <!-- Premium Analytics -->
                 <div id="analytics-section" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <!-- Hardest Question -->
                     <div id="hardest-question-box" class="hidden stat-card border-l-4 border-red-500">
                         <h4 class="text-xs text-red-400 font-black uppercase tracking-wider mb-2">⚠️ ข้อที่ยากที่สุด</h4>
                         <p id="hardest-question-text" class="text-sm text-slate-300 leading-relaxed"></p>
@@ -445,12 +412,10 @@
                             <span id="hardest-correct-count" class="analytics-badge tag-correct"></span>
                         </div>
                     </div>
-                    <!-- Speed Stats -->
                     <div id="speed-stats-box" class="hidden stat-card border-l-4 border-indigo-500">
                         <h4 class="text-xs text-indigo-400 font-black uppercase tracking-wider mb-2">⚡ สถิติความเร็วการตอบ</h4>
                         <div id="speed-stats-content" class="space-y-1"></div>
                     </div>
-                    <!-- All Questions Stats -->
                     <div id="all-question-stats" class="hidden md:col-span-2 stat-card">
                         <h4 class="text-xs text-slate-400 font-black uppercase tracking-wider mb-3">📋 สถิติรายข้อ</h4>
                         <div id="all-question-stats-list" class="space-y-2 max-h-[200px] overflow-y-auto"></div>
@@ -471,9 +436,6 @@
             </div>
         </div>
 
-        <!-- ============================================================
-             SCREEN 10: Player End Screen
-             ============================================================ -->
         <div id="player-end-screen" class="screen hidden w-full max-w-md text-center">
             <div class="glass rounded-3xl p-8">
                 <div id="player-final-avatar" class="text-6xl block mb-3">🏆</div>
@@ -500,11 +462,6 @@
         © 2026 MKS Realtime Quiz System · Powered by Firebase & Web Audio API
     </footer>
 
-    <!-- ============================================================
-         MODALS
-         ============================================================ -->
-
-    <!-- Modal: Add/Edit Quiz -->
     <div id="modal-add-quiz" class="modal-overlay hidden">
         <div class="modal-box">
             <div class="flex justify-between items-center mb-5">
@@ -527,7 +484,6 @@
         </div>
     </div>
 
-    <!-- Modal: Change Password -->
     <div id="modal-change-password" class="modal-overlay hidden">
         <div class="modal-box max-w-sm">
             <div class="flex justify-between items-center mb-5">
@@ -547,7 +503,6 @@
         </div>
     </div>
 
-    <!-- QR Zoom Overlay -->
     <div id="qr-zoom-overlay" class="qr-zoom-overlay hidden" onclick="closeQRZoom()">
         <div class="text-center" onclick="event.stopPropagation()">
             <div id="qr-zoom-code" class="bg-white p-5 rounded-3xl shadow-2xl mb-4 inline-block"></div>
@@ -560,7 +515,6 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, update, onValue, get, runTransaction, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -578,13 +532,10 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // ============================================================
         // AVATARS
-        // ============================================================
         const AVATARS = ['🦁','🐯','🦊','🐼','🐨','🦄','🐰','🐶','🐱','🐭','🐸','🐙','🐒','🐥','🐹','🦝','🦔','🐺','🦋','🐬','🐧','🦀','🐲','🌟'];
         let currentAvatarIndex = Math.floor(Math.random() * AVATARS.length);
 
-        // Build avatar grid
         function buildAvatarGrid() {
             const grid = document.getElementById('avatar-grid');
             grid.innerHTML = '';
@@ -606,9 +557,7 @@
             document.getElementById('selected-avatar-preview').textContent = AVATARS[i];
         }
 
-        // ============================================================
         // LOCAL STORAGE QUIZ LIBRARY
-        // ============================================================
         const LS_KEY = 'mks_quizzes_v2';
         const DEFAULT_QUIZZES = [
             {
@@ -691,9 +640,7 @@
             });
         }
 
-        // ============================================================
         // PASSWORD SYSTEM
-        // ============================================================
         const PW_KEY = 'mks_teacher_pw';
         function getTeacherPassword() {
             return localStorage.getItem(PW_KEY) || 'teacher123';
@@ -742,9 +689,7 @@
             setTimeout(() => closeModal('modal-change-password'), 1500);
         };
 
-        // ============================================================
         // MODAL: ADD / EDIT QUIZ
-        // ============================================================
         let editingQuizId = null;
 
         window.openAddQuizModal = function() {
@@ -849,9 +794,7 @@
             document.getElementById(id).classList.add('hidden');
         };
 
-        // ============================================================
         // AUDIO: Procedural Suspense BGM
-        // ============================================================
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         let bgmInterval = null;
         let synthStep = 0;
@@ -960,9 +903,7 @@
             }
         }
 
-        // ============================================================
         // QR CODE & LINK
-        // ============================================================
         let currentJoinUrl = '';
         let qrZoomInstance = null;
 
@@ -1023,9 +964,7 @@
             }
         }
 
-        // ============================================================
         // STATE
-        // ============================================================
         let currentRole = null;
         let currentPin = null;
         let currentPlayerId = null;
@@ -1033,8 +972,10 @@
         let lastSeenQIndex = -1;
         let hostTimerInterval = null;
         let activeQuizQuestions = [];
-        let questionAnswerHistory = {};  // For analytics: {qIdx: {correct:n, wrong:n, totalTime:ms}}
+        let questionAnswerHistory = {};  // For analytics
         let currentQuestionStartTime = 0;
+        let roomListenerUnsub = null;
+        let lobbyListenerUnsub = null;
 
         function showScreen(id) {
             document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
@@ -1051,9 +992,7 @@
             setTimeout(() => el.remove(), 2200);
         }
 
-        // ============================================================
         // TEACHER STUDIO
-        // ============================================================
         document.getElementById('btn-create-dummy-quiz').addEventListener('click', () => {
             saveQuizToLibrary("วิวัฒนาการคอมพิวเตอร์ 💻", [
                 { q: "ใครพัฒนาภาษา HTML?", options: ["Tim Berners-Lee","Bill Gates","Dennis Ritchie","Linus Torvalds"], correct: 0, timeLimit: 15 },
@@ -1091,7 +1030,6 @@
                     for (let i = 1; i < lines.length; i++) {
                         const line = lines[i].trim();
                         if (!line) continue;
-                        // Handle quoted CSV
                         const cells = parseCSVLine(line);
                         if (cells.length < 6) continue;
                         questions.push({
@@ -1142,9 +1080,7 @@
             a.click();
         });
 
-        // ============================================================
         // LAUNCH QUIZ (Host → Lobby)
-        // ============================================================
         window.launchQuiz = (id) => {
             const quiz = getQuizzes().find(q => q.id === id);
             if (!quiz) return;
@@ -1154,6 +1090,7 @@
 
             const pin = Math.floor(100000 + Math.random() * 900000).toString();
             currentPin = pin;
+            currentRole = 'host';
 
             set(ref(db, 'rooms/' + pin), {
                 state: 'lobby',
@@ -1165,7 +1102,10 @@
                 document.getElementById('host-pin-display').textContent = pin;
                 generateLobbyQR(pin);
                 showScreen('host-lobby-screen');
-                onValue(ref(db, `rooms/${pin}/players`), snap => renderHostLobby(snap.val() || {}));
+                
+                if (lobbyListenerUnsub) lobbyListenerUnsub();
+                lobbyListenerUnsub = onValue(ref(db, `rooms/${pin}/players`), snap => renderHostLobby(snap.val() || {}));
+                
                 listenToRoomEvents(pin);
             });
         };
@@ -1174,6 +1114,10 @@
             if (confirm('ยืนยันปิดห้องและกลับคลังข้อสอบ?')) {
                 remove(ref(db, `rooms/${currentPin}`));
                 stopBGM();
+                
+                if (roomListenerUnsub) { roomListenerUnsub(); roomListenerUnsub = null; }
+                if (lobbyListenerUnsub) { lobbyListenerUnsub(); lobbyListenerUnsub = null; }
+                
                 showScreen('host-studio-screen');
                 renderQuizStudioList();
             }
@@ -1205,11 +1149,10 @@
             });
         }
 
-        // ============================================================
         // ROOM EVENTS
-        // ============================================================
         function listenToRoomEvents(pin) {
-            onValue(ref(db, `rooms/${pin}`), snap => {
+            if (roomListenerUnsub) roomListenerUnsub();
+            roomListenerUnsub = onValue(ref(db, `rooms/${pin}`), snap => {
                 const room = snap.val();
                 if (!room) return;
                 if (currentRole === 'host') handleHostRoomUpdate(room);
@@ -1291,7 +1234,6 @@
                 document.getElementById(`bar-count-${i}`).textContent = counts[i];
             }
 
-            // Track analytics locally
             if (answered === total && total > 0 && lastSeenState === 'question') {
                 const correct = plist.filter(p => p.answered && p.lastAnswerCorrect).length;
                 const wrong = total - correct;
@@ -1392,7 +1334,6 @@
             const plist = Object.values(players || {});
             if (plist.length === 0 || questions.length === 0) return;
 
-            // Use tracked history
             const stats = questions.map((q, i) => ({
                 q: q.q,
                 idx: i,
@@ -1401,7 +1342,6 @@
                 total: questionAnswerHistory[i]?.count || plist.length
             }));
 
-            // Hardest question (most wrong)
             const hardest = stats.reduce((a, b) => b.wrong > a.wrong ? b : a, stats[0]);
             if (hardest.wrong > 0) {
                 document.getElementById('hardest-question-box').classList.remove('hidden');
@@ -1410,14 +1350,12 @@
                 document.getElementById('hardest-correct-count').textContent = `✓ ตอบถูก ${hardest.correct} คน`;
             }
 
-            // Speed stats (top 3 fastest)
             document.getElementById('speed-stats-box').classList.remove('hidden');
             const fastestPlayers = [...plist].sort((a, b) => b.score - a.score).slice(0, 3);
             document.getElementById('speed-stats-content').innerHTML = fastestPlayers.map((p, i) =>
                 `<div class="flex justify-between text-xs"><span>${['🥇','🥈','🥉'][i]} ${p.avatar} ${p.nickname}</span><span class="text-indigo-300 font-bold">${p.score} pts</span></div>`
             ).join('');
 
-            // All question stats
             document.getElementById('all-question-stats').classList.remove('hidden');
             document.getElementById('all-question-stats-list').innerHTML = stats.map(s => {
                 const pct = s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0;
@@ -1435,7 +1373,6 @@
             }).join('');
         }
 
-        // Export results CSV
         document.getElementById('btn-export-results').addEventListener('click', () => {
             get(ref(db, `rooms/${currentPin}`)).then(snap => {
                 const room = snap.val();
@@ -1469,9 +1406,7 @@
             renderQuizStudioList();
         });
 
-        // ============================================================
         // PLAYER LOGIC
-        // ============================================================
         document.getElementById('btn-join-game').addEventListener('click', () => {
             const pin = document.getElementById('player-pin-input').value.trim();
             const nickname = document.getElementById('player-name-input').value.trim();
@@ -1514,6 +1449,12 @@
                     document.querySelectorAll('.btn-answer-opt').forEach((btn, idx) => {
                         btn.disabled = false;
                         btn.classList.remove('opacity-30');
+                        
+                        const textSpan = btn.querySelector('.opt-text-player');
+                        if (textSpan) {
+                            textSpan.textContent = currentQ.options[idx] || '';
+                        }
+
                         const noOpt = idx >= 2 && !currentQ.options[2] && !currentQ.options[3];
                         btn.classList.toggle('hidden', noOpt);
                     });
@@ -1591,9 +1532,7 @@
             showScreen('player-join-screen');
         });
 
-        // ============================================================
         // INIT
-        // ============================================================
         window.addEventListener('DOMContentLoaded', () => {
             buildAvatarGrid();
             checkUrlParams();
