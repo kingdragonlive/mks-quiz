@@ -7,13 +7,304 @@
     <meta name="description" content="MKS-QUIZ STUDIO — ระบบแข่งขันตอบคำถามเรียลไทม์">
     <title>⚡ MKS-QUIZ STUDIO</title>
 
-    <!-- Tailwind CDN (production: ใช้ Tailwind CLI แทน) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts + QR Code lib -->
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <!-- Custom stylesheet -->
-    <link rel="stylesheet" href="css/style.css">
+
+<style>
+/* ─── Base ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100vh; font-family: 'Kanit', sans-serif; background: #080c18; color: #e2e8f0; display: flex; flex-direction: column; }
+
+/* ─── Glassmorphism ─── */
+.glass {
+  background: rgba(15,22,42,0.75);
+  border: 1px solid rgba(99,102,241,0.18);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* ─── Buttons ─── */
+.btn-primary {
+  background: linear-gradient(135deg,#6366f1,#818cf8);
+  color:#fff; font-weight:800; border:none; cursor:pointer;
+  transition: all .18s; display:inline-flex; align-items:center; justify-content:center;
+  font-family:'Kanit',sans-serif;
+}
+.btn-primary:hover { filter:brightness(1.12); transform:translateY(-1px); box-shadow:0 6px 22px rgba(99,102,241,.45); }
+.btn-success {
+  background: linear-gradient(135deg,#10b981,#34d399);
+  color:#fff; font-weight:800; border:none; cursor:pointer;
+  transition: all .18s; display:inline-flex; align-items:center; justify-content:center;
+  font-family:'Kanit',sans-serif;
+}
+.btn-success:hover { filter:brightness(1.1); transform:translateY(-1px); box-shadow:0 6px 22px rgba(16,185,129,.4); }
+
+/* ─── Screen layout ─── */
+.screen { animation: fadeUp .35s ease both; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+/* ─── Progress bar ─── */
+.progress-bar { height:4px; background:rgba(255,255,255,0.08); border-radius:999px; overflow:hidden; }
+.progress-fill { height:100%; background:linear-gradient(90deg,#6366f1,#a78bfa); border-radius:999px; transition:width .6s ease; }
+
+/* ─── Timer ring ─── */
+.timer-critical { animation: timerPulse .5s ease-in-out infinite alternate; }
+@keyframes timerPulse { from{color:#f87171} to{color:#fbbf24} }
+
+/* ─── Avatar grid ─── */
+.avatar-btn {
+  width:52px; height:52px; border-radius:16px; font-size:24px;
+  background: rgba(30,41,59,0.6); border:2px solid transparent;
+  cursor:pointer; transition:all .15s; display:flex; align-items:center; justify-content:center;
+}
+.avatar-btn:hover { background:rgba(99,102,241,0.2); border-color:rgba(99,102,241,0.5); transform:scale(1.08); }
+.avatar-btn.selected { background:rgba(99,102,241,0.25); border-color:#818cf8; transform:scale(1.1); box-shadow:0 0 0 4px rgba(129,140,248,0.25); }
+.avatar-grid { display:grid; grid-template-columns:repeat(auto-fill,52px); gap:8px; justify-content:center; }
+
+/* ─── ════════════════════════════════════════
+   PLAYER ANSWER BUTTONS — หัวใจของ redesign
+   ════════════════════════════════════════ ─── */
+.btn-answer-opt {
+  position:relative; overflow:hidden;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:8px; padding:20px 12px; border-radius:24px; border:none;
+  font-family:'Kanit',sans-serif; font-weight:700; cursor:pointer;
+  transition: transform .15s cubic-bezier(.34,1.56,.64,1), filter .15s, box-shadow .2s;
+  min-height:110px;
+}
+.btn-answer-opt::before {
+  content:''; position:absolute; inset:0;
+  background:rgba(255,255,255,0.06);
+  opacity:0; transition:opacity .15s;
+}
+.btn-answer-opt:hover:not(:disabled)::before { opacity:1; }
+.btn-answer-opt:hover:not(:disabled) { transform:translateY(-4px) scale(1.03); }
+.btn-answer-opt:active:not(:disabled) { transform:scale(.96); }
+.btn-answer-opt:disabled { cursor:default; }
+
+/* Ripple on tap */
+.btn-answer-opt .ripple {
+  position:absolute; border-radius:50%;
+  width:60px; height:60px; margin-top:-30px; margin-left:-30px;
+  background:rgba(255,255,255,0.35); animation:ripple .55s linear;
+  pointer-events:none;
+}
+@keyframes ripple { from{transform:scale(0);opacity:1} to{transform:scale(4);opacity:0} }
+
+/* สี 4 ตัวเลือก — gradient เพื่อความลึก */
+.opt-red    { background:linear-gradient(145deg,#e11d48,#f43f5e); box-shadow:0 8px 28px rgba(225,29,72,.35); color:#fff; }
+.opt-blue   { background:linear-gradient(145deg,#2563eb,#3b82f6); box-shadow:0 8px 28px rgba(37,99,235,.35); color:#fff; }
+.opt-amber  { background:linear-gradient(145deg,#d97706,#f59e0b); box-shadow:0 8px 28px rgba(217,119,6,.35); color:#1c1107; }
+.opt-green  { background:linear-gradient(145deg,#059669,#10b981); box-shadow:0 8px 28px rgba(5,150,105,.35); color:#fff; }
+
+/* Hover shadows intensify */
+.opt-red:hover:not(:disabled)    { box-shadow:0 14px 36px rgba(225,29,72,.55); }
+.opt-blue:hover:not(:disabled)   { box-shadow:0 14px 36px rgba(37,99,235,.55); }
+.opt-amber:hover:not(:disabled)  { box-shadow:0 14px 36px rgba(217,119,6,.55); }
+.opt-green:hover:not(:disabled)  { box-shadow:0 14px 36px rgba(5,150,105,.55); }
+
+/* State: ล็อคแล้ว ─ ตัวที่ไม่เลือก dim */
+.btn-answer-opt.dimmed { opacity:.32; transform:scale(.97); filter:grayscale(.4); }
+/* State: ตัวที่เลือก ─ pulse halo */
+.btn-answer-opt.chosen { animation:chosenPulse .6s ease forwards; }
+@keyframes chosenPulse { 0%{transform:scale(1)} 40%{transform:scale(1.08)} 70%{transform:scale(.98)} 100%{transform:scale(1.02)} }
+
+.opt-icon { font-size:36px; line-height:1; transition:transform .2s; }
+.opt-text { font-size:15px; line-height:1.25; text-align:center; font-weight:700; word-break:break-word; max-width:100%; }
+
+/* ─── Player Timer (circular SVG) ─── */
+.player-timer-wrap {
+  position:relative; width:72px; height:72px; flex-shrink:0;
+}
+.player-timer-wrap svg { transform:rotate(-90deg); }
+.timer-ring-bg { fill:none; stroke:rgba(255,255,255,0.1); stroke-width:5; }
+.timer-ring    { fill:none; stroke:#6366f1; stroke-width:5; stroke-linecap:round; transition:stroke-dashoffset .9s linear, stroke .5s; }
+.timer-ring.tense { stroke:#ef4444; }
+.timer-label {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:22px; font-weight:900; color:#fff;
+}
+.timer-label.tense { color:#ef4444; }
+
+/* ─── Question card on player phone ─── */
+.player-q-card {
+  background: rgba(15,22,42,0.85);
+  border: 1px solid rgba(99,102,241,0.22);
+  border-radius:24px; padding:20px;
+  backdrop-filter:blur(14px);
+}
+
+/* ─── Player Lobby ─── */
+.pulse-dots span { display:inline-block; width:10px; height:10px; border-radius:50%; background:#6366f1; animation:bounceDot .8s ease-in-out infinite; }
+.pulse-dots span:nth-child(2) { animation-delay:.2s; }
+.pulse-dots span:nth-child(3) { animation-delay:.4s; }
+@keyframes bounceDot { 0%,80%,100%{transform:scale(0.6);opacity:.4} 40%{transform:scale(1.2);opacity:1} }
+
+/* ─── Locked overlay ─── */
+.locked-overlay {
+  position:absolute; inset:0; border-radius:24px;
+  background:rgba(8,12,24,0.82); backdrop-filter:blur(4px);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  animation:fadeIn .25s ease;
+}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+/* ─── Feedback Card ─── */
+.feedback-correct {
+  background: radial-gradient(circle at 20% 20%, rgba(16,185,129,0.18), transparent 60%),
+              rgba(15,22,42,0.9);
+  border-color: rgba(16,185,129,0.4) !important;
+}
+.feedback-wrong {
+  background: radial-gradient(circle at 20% 20%, rgba(239,68,68,0.15), transparent 60%),
+              rgba(15,22,42,0.9);
+  border-color: rgba(239,68,68,0.35) !important;
+}
+.score-badge {
+  display:inline-flex; align-items:center; justify-content:center;
+  background: rgba(250,204,21,0.15); border:1px solid rgba(250,204,21,0.35);
+  border-radius:999px; padding:6px 20px;
+  font-size:28px; font-weight:900; color:#fbbf24;
+  animation:scaleIn .4s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes scaleIn { from{transform:scale(0.5);opacity:0} to{transform:scale(1);opacity:1} }
+.streak-fire { animation:firePulse .5s ease alternate infinite; }
+@keyframes firePulse { from{transform:scale(.95)} to{transform:scale(1.08)} }
+
+/* ─── Rank badge ─── */
+.rank-pill {
+  display:inline-flex; align-items:center; gap:6px;
+  background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3);
+  border-radius:999px; padding:4px 16px; font-size:14px; font-weight:700; color:#a5b4fc;
+}
+
+/* ─── Join screen ─── */
+.teacher-login-shield { position:relative; overflow:hidden; }
+.teacher-login-shield::before {
+  content:''; position:absolute; width:400px; height:400px; border-radius:50%;
+  background:radial-gradient(circle,rgba(99,102,241,0.12),transparent 70%);
+  top:-100px; left:50%; transform:translateX(-50%); pointer-events:none;
+}
+.pulse-ring { animation:pulseRing 2s ease-in-out infinite; }
+@keyframes pulseRing {
+  0%,100%{box-shadow:0 0 0 0 rgba(99,102,241,.35)}
+  50%{box-shadow:0 0 0 14px rgba(99,102,241,0)}
+}
+
+/* ─── Bar chart ─── */
+.bar-container { display:flex; gap:10px; align-items:flex-end; height:90px; }
+.bar-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.bar { width:100%; border-radius:8px 8px 0 0; min-height:3px; transition:height .5s cubic-bezier(.25,.46,.45,.94); }
+.bar-count { font-size:11px; font-weight:800; color:#e2e8f0; }
+.bar-label { font-size:16px; }
+
+/* ─── Lobby quiz item ─── */
+.quiz-item:hover .quiz-actions { opacity:1; }
+.quiz-actions { opacity:.75; transition:opacity .15s; }
+
+/* ─── Modals ─── */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.7);
+  display:flex; align-items:center; justify-content:center; z-index:100;
+  padding:16px; backdrop-filter:blur(4px);
+}
+.modal-box {
+  background:#0f1629; border:1px solid rgba(99,102,241,0.2);
+  border-radius:24px; padding:28px; width:100%; max-width:720px;
+  max-height:90vh; overflow-y:auto;
+}
+
+/* ─── QR Zoom ─── */
+.qr-zoom-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.88);
+  display:flex; align-items:center; justify-content:center; z-index:200;
+  backdrop-filter:blur(8px);
+}
+
+/* ─── Toasts ─── */
+.copy-toast {
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+  color:#fff; font-weight:700; padding:10px 24px; border-radius:999px;
+  font-family:'Kanit',sans-serif; font-size:14px; z-index:999;
+  animation:slideUp .25s ease;
+}
+@keyframes slideUp { from{transform:translateX(-50%) translateY(16px);opacity:0} to{transform:translateX(-50%) translateY(0);opacity:1} }
+
+/* ─── Confetti ─── */
+.confetti-piece {
+  position:fixed; pointer-events:none; z-index:300;
+  animation:fall linear both;
+}
+@keyframes fall {
+  0%{transform:translateY(0) rotate(0deg);opacity:1}
+  100%{transform:translateY(105vh) rotate(720deg);opacity:0}
+}
+
+/* ─── Tags ─── */
+.tag-correct { background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); color:#34d399; font-size:11px; font-weight:700; padding:2px 10px; border-radius:999px; display:inline-block; }
+.tag-wrong   { background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.25); color:#f87171; font-size:11px; font-weight:700; padding:2px 10px; border-radius:999px; display:inline-block; }
+.streak-badge { background:rgba(251,146,60,0.18); border:1px solid rgba(251,146,60,0.3); color:#fb923c; font-size:10px; font-weight:800; padding:1px 8px; border-radius:999px; display:inline-block; }
+.stat-card { background:rgba(15,22,42,0.7); border:1px solid rgba(71,85,105,0.4); border-radius:16px; padding:16px; }
+
+/* ─── Drag drop ─── */
+.drag-over { border-color:#6366f1 !important; background:rgba(99,102,241,0.08) !important; }
+
+/* ─── Podium ─── */
+.podium-1 { position:relative; }
+.podium-1::before {
+  content:''; position:absolute; inset:0; border-radius:inherit;
+  background:radial-gradient(ellipse at 50% 0%,rgba(250,204,21,0.08),transparent 70%);
+  pointer-events:none;
+}
+
+/* ─── Player Join Input ─── */
+.pin-input {
+  font-size:36px; font-weight:900; letter-spacing:0.2em; text-align:center;
+  background:rgba(8,12,24,0.8); border:2px solid rgba(99,102,241,0.25);
+  border-radius:18px; padding:14px; color:#fbbf24; width:100%;
+  transition:border-color .2s;
+}
+.pin-input:focus { outline:none; border-color:#818cf8; box-shadow:0 0 0 4px rgba(129,140,248,0.15); }
+.name-input {
+  font-size:18px; font-weight:600; text-align:center;
+  background:rgba(8,12,24,0.8); border:2px solid rgba(99,102,241,0.2);
+  border-radius:18px; padding:14px; color:#e2e8f0; width:100%;
+  transition:border-color .2s;
+}
+.name-input:focus { outline:none; border-color:#34d399; box-shadow:0 0 0 4px rgba(52,211,153,0.12); }
+
+/* ─── Join button loading ─── */
+.btn-loading { opacity:.7; pointer-events:none; }
+.spinner {
+  width:20px; height:20px; border:3px solid rgba(255,255,255,.3);
+  border-top-color:#fff; border-radius:50%;
+  animation:spin .6s linear infinite; display:inline-block;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
+
+/* ─── Responsive ─── */
+@media (max-width:480px) {
+  .btn-answer-opt { min-height:95px; padding:14px 10px; border-radius:20px; }
+  .opt-icon { font-size:28px; }
+  .opt-text { font-size:13px; }
+}
+
+/* ─── Player avatar display in lobby ─── */
+.player-chip {
+  display:flex; align-items:center; gap:8px;
+  background:rgba(30,41,59,0.7); border:1px solid rgba(99,102,241,0.2);
+  border-radius:14px; padding:10px 14px; font-weight:700; font-size:13px;
+  animation:chipPop .3s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes chipPop { from{transform:scale(0.7);opacity:0} to{transform:scale(1);opacity:1} }
+
+/* ─── Question index chip ─── */
+.q-chip {
+  background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3);
+  color:#a5b4fc; font-size:12px; font-weight:800; padding:4px 14px; border-radius:999px;
+}
+</style>
 </head>
 <body>
 
@@ -30,9 +321,9 @@
 
 <main class="flex-grow flex items-center justify-center p-4 py-8">
 
-<!-- ====================================================================
+<!-- ════════════════════════════════════════════
      SCREEN 0 · Teacher Login
-     ==================================================================== -->
+     ════════════════════════════════════════════ -->
 <div id="teacher-login-screen" class="screen w-full max-w-md">
     <div class="glass rounded-3xl p-8 text-center teacher-login-shield">
         <div class="w-20 h-20 rounded-full bg-indigo-900/50 border border-indigo-700/50 flex items-center justify-center mx-auto mb-5 text-4xl pulse-ring">👨‍🏫</div>
@@ -51,12 +342,11 @@
     </div>
 </div>
 
-<!-- ====================================================================
-     SCREEN 1 · Quiz Studio (Teacher HQ)
-     ==================================================================== -->
+<!-- ════════════════════════════════════════════
+     SCREEN 1 · Quiz Studio
+     ════════════════════════════════════════════ -->
 <div id="host-studio-screen" class="screen hidden w-full max-w-6xl">
     <div class="glass rounded-3xl p-6 md:p-8">
-        <!-- Top bar -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
             <div>
                 <h2 class="text-2xl font-black text-indigo-300">📁 คลังแบบทดสอบ</h2>
@@ -65,21 +355,16 @@
             <div class="flex flex-wrap gap-2">
                 <button id="btn-dl-template" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-xs font-bold py-2 px-4 rounded-xl transition flex items-center gap-1.5">📥 Template CSV</button>
                 <label class="bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white text-xs font-bold py-2 px-4 rounded-xl cursor-pointer transition flex items-center gap-1.5">
-                    📤 นำเข้า CSV
-                    <input id="input-csv" type="file" accept=".csv" class="hidden">
+                    📤 นำเข้า CSV<input id="input-csv" type="file" accept=".csv" class="hidden">
                 </label>
                 <button id="btn-new-quiz" class="btn-primary text-xs py-2 px-4 rounded-xl flex items-center gap-1.5">✏️ สร้างใหม่</button>
                 <button id="btn-logout" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 text-xs font-bold py-2 px-3 rounded-xl transition">🚪</button>
             </div>
         </div>
-
-        <!-- CSV drop zone -->
         <div id="csv-drop-zone" class="border-2 border-dashed border-slate-700 rounded-2xl p-4 mb-5 text-center text-xs text-slate-500 transition cursor-pointer hover:border-indigo-500/60 hover:bg-indigo-950/20">
-            📎 ลากวางไฟล์ .csv ที่นี่เพื่อนำเข้าทันที — รองรับ UTF-8 และ TH-encoding
+            📎 ลากวางไฟล์ .csv ที่นี่ — รองรับ UTF-8 และ TH-encoding
         </div>
-
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            <!-- Quiz list -->
             <div class="lg:col-span-2 bg-slate-900/50 rounded-2xl border border-slate-800 p-5">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="font-bold text-slate-200">ชุดแบบทดสอบ</h3>
@@ -90,8 +375,6 @@
                 </div>
                 <div id="quiz-list-container" class="space-y-2 max-h-[400px] overflow-y-auto pr-1"></div>
             </div>
-
-            <!-- Sidebar -->
             <div class="bg-slate-900/30 rounded-2xl border border-slate-800 p-5 flex flex-col justify-between">
                 <div>
                     <h4 class="font-bold text-yellow-400 mb-3 flex items-center gap-2">💡 คู่มือ</h4>
@@ -112,13 +395,12 @@
     </div>
 </div>
 
-<!-- ====================================================================
+<!-- ════════════════════════════════════════════
      SCREEN 2 · Host Lobby
-     ==================================================================== -->
+     ════════════════════════════════════════════ -->
 <div id="host-lobby-screen" class="screen hidden w-full max-w-5xl">
     <div class="glass rounded-3xl p-6 md:p-8">
         <div class="grid grid-cols-1 md:grid-cols-5 gap-5 mb-6">
-            <!-- QR panel -->
             <div class="md:col-span-2 bg-slate-900/60 rounded-2xl border border-slate-800 p-5 flex flex-col items-center justify-center gap-3">
                 <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">สแกนเพื่อเข้าร่วม</p>
                 <div id="lobby-qrcode" class="bg-white p-3 rounded-2xl shadow-lg cursor-pointer hover:scale-105 transition-transform"></div>
@@ -128,7 +410,6 @@
                     <button id="btn-zoom-qr"   class="text-xs bg-slate-800 hover:bg-slate-700 py-2 px-3 rounded-lg border border-slate-700 transition font-semibold">🔍 ขยาย</button>
                 </div>
             </div>
-            <!-- PIN + URL -->
             <div class="md:col-span-3 bg-slate-900/60 rounded-2xl border border-slate-800 p-5 flex flex-col justify-center">
                 <p class="text-slate-400 text-sm mb-1">Game PIN</p>
                 <h2 id="host-pin-display" class="text-5xl md:text-6xl font-black tracking-[0.25em] text-yellow-400 mb-3">------</h2>
@@ -142,83 +423,112 @@
                 <div id="lobby-quiz-info" class="mt-3 text-xs text-slate-500"></div>
             </div>
         </div>
-        <!-- Players -->
         <div class="mb-5">
             <div class="flex justify-between items-center mb-2">
                 <h3 class="text-sm font-bold text-slate-300">ผู้เล่นในล็อบบี้ (<span id="player-count" class="text-indigo-400">0</span>)</h3>
             </div>
-            <div id="player-list-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3 min-h-[100px] max-h-[200px] overflow-y-auto p-4 bg-slate-950/50 rounded-xl border border-slate-800">
-                <p class="col-span-full text-center text-slate-600 text-xs py-6">รอผู้เล่นเข้าร่วม...</p>
+            <div id="player-list-grid" class="flex flex-wrap gap-2 min-h-[80px] max-h-[180px] overflow-y-auto p-4 bg-slate-950/50 rounded-xl border border-slate-800">
+                <p class="w-full text-center text-slate-600 text-xs py-4">รอผู้เล่นเข้าร่วม...</p>
             </div>
         </div>
         <div class="flex gap-3 justify-end">
             <button id="btn-cancel-lobby" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold py-3 px-6 rounded-xl transition text-sm">← กลับ</button>
-            <button id="btn-start-game"   class="btn-primary py-3 px-10 rounded-xl text-lg">🚀 เริ่มเกม!</button>
+            <button id="btn-start-game" class="btn-primary py-3 px-10 rounded-xl text-lg">🚀 เริ่มเกม!</button>
         </div>
     </div>
 </div>
 
-<!-- ====================================================================
-     SCREEN 3 · Player Join
-     ==================================================================== -->
+<!-- ════════════════════════════════════════════
+     SCREEN 3 · Player Join  ★ REDESIGNED ★
+     ════════════════════════════════════════════ -->
 <div id="player-join-screen" class="screen hidden w-full max-w-md">
     <div class="glass rounded-3xl p-7">
-        <h2 class="text-2xl font-black text-center mb-6 text-emerald-400">🎮 เข้าร่วมการแข่งขัน</h2>
-        <!-- Avatar -->
+        <!-- Header -->
+        <div class="text-center mb-6">
+            <div class="inline-flex items-center gap-2 bg-emerald-900/30 border border-emerald-800/40 rounded-full px-4 py-1.5 text-xs text-emerald-400 font-bold mb-4">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block"></span>
+                พร้อมเข้าร่วมการแข่งขัน
+            </div>
+            <h2 class="text-2xl font-black text-white">🎮 เข้าร่วมเกม</h2>
+        </div>
+
+        <!-- Avatar selector -->
         <div class="mb-5">
-            <p class="text-xs text-slate-400 font-bold mb-2 text-center uppercase tracking-wider">เลือกอวาตาร์</p>
-            <div class="bg-slate-900/60 rounded-2xl border border-slate-800 p-3">
-                <div id="avatar-grid" class="avatar-grid mb-3"></div>
-                <div class="flex justify-center">
-                    <div id="selected-avatar-preview" class="text-5xl p-3 bg-indigo-900/30 border-2 border-indigo-500 rounded-xl min-w-[72px] text-center">🐯</div>
+            <p class="text-xs text-slate-400 font-bold mb-2 text-center uppercase tracking-wider">เลือกอวาตาร์ของคุณ</p>
+            <div class="bg-slate-900/70 rounded-2xl border border-slate-800 p-3">
+                <!-- Selected preview -->
+                <div class="flex items-center justify-center mb-3">
+                    <div id="selected-avatar-preview"
+                        class="text-6xl w-20 h-20 bg-indigo-900/40 border-2 border-indigo-500 rounded-2xl flex items-center justify-center transition-all duration-200 pulse-ring">🐯</div>
                 </div>
+                <div id="avatar-grid" class="avatar-grid"></div>
             </div>
         </div>
+
+        <!-- Inputs -->
         <div class="space-y-3">
             <div>
-                <label class="block text-slate-400 mb-1 text-xs font-semibold">Game PIN (6 หลัก)</label>
-                <input id="player-pin-input" type="number" placeholder="000000"
-                    class="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 px-4 text-center text-3xl font-black text-yellow-400 focus:outline-none focus:border-yellow-500 transition tracking-widest">
+                <label class="block text-slate-400 mb-1.5 text-xs font-semibold">🔢 Game PIN (6 หลัก)</label>
+                <input id="player-pin-input" type="number" placeholder="000000" class="pin-input">
             </div>
             <div>
-                <label class="block text-slate-400 mb-1 text-xs font-semibold">ชื่อผู้เล่น</label>
-                <input id="player-name-input" type="text" placeholder="ใส่ชื่อ..." maxlength="14"
-                    class="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 px-4 text-center text-lg focus:outline-none focus:border-emerald-500 transition">
+                <label class="block text-slate-400 mb-1.5 text-xs font-semibold">✏️ ชื่อผู้เล่น</label>
+                <input id="player-name-input" type="text" placeholder="ใส่ชื่อเล่น..." maxlength="14" class="name-input">
             </div>
-            <button id="btn-join-game" class="btn-success w-full py-4 rounded-xl text-lg">เข้าร่วมเลย! 🏃</button>
-            <div id="join-error" class="hidden text-red-400 text-xs text-center mt-1"></div>
+            <button id="btn-join-game" class="btn-success w-full py-4 rounded-2xl text-lg mt-2">
+                เข้าร่วมเลย! 🏃
+            </button>
+            <div id="join-error" class="hidden text-red-400 text-xs text-center bg-red-950/30 border border-red-800/30 rounded-xl py-2 px-4"></div>
         </div>
     </div>
 </div>
 
-<!-- ====================================================================
-     SCREEN 4 · Player Lobby (waiting)
-     ==================================================================== -->
-<div id="player-lobby-screen" class="screen hidden w-full max-w-md text-center">
+<!-- ════════════════════════════════════════════
+     SCREEN 4 · Player Lobby  ★ REDESIGNED ★
+     ════════════════════════════════════════════ -->
+<div id="player-lobby-screen" class="screen hidden w-full max-w-sm text-center">
     <div class="glass rounded-3xl p-8">
-        <span id="player-lobby-avatar" class="text-7xl block mb-3">🐯</span>
-        <h2 class="text-2xl font-bold mb-1">เข้าร่วมสำเร็จ!</h2>
-        <p class="text-emerald-400 font-bold">ผู้กล้า: <span id="player-lobby-name" class="underline"></span></p>
-        <p class="text-slate-500 text-sm mt-5 leading-relaxed">รอครูกดเริ่มเกม...<br>มองหน้าจอโปรเจคเตอร์เพื่อดูคำถาม</p>
-        <div class="mt-5 flex justify-center gap-1.5">
-            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-bounce" style="animation-delay:0s"></span>
-            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-bounce" style="animation-delay:0.2s"></span>
-            <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-bounce" style="animation-delay:0.4s"></span>
+        <!-- Avatar with glow ring -->
+        <div class="relative inline-block mb-4">
+            <div class="w-28 h-28 rounded-full bg-indigo-900/40 border-2 border-indigo-500 flex items-center justify-center mx-auto" style="box-shadow:0 0 32px rgba(99,102,241,0.4)">
+                <span id="player-lobby-avatar" class="text-6xl">🐯</span>
+            </div>
+            <!-- online dot -->
+            <span class="absolute bottom-1 right-1 w-5 h-5 bg-emerald-400 rounded-full border-2 border-slate-900 flex items-center justify-center text-[10px]">✓</span>
+        </div>
+
+        <div class="mb-6">
+            <p class="text-slate-400 text-sm">ยินดีต้อนรับ, ผู้กล้า!</p>
+            <h2 class="text-2xl font-black text-white mt-1" id="player-lobby-name">ชื่อผู้เล่น</h2>
+        </div>
+
+        <!-- Status card -->
+        <div class="bg-slate-900/60 rounded-2xl border border-slate-800 p-5 mb-5">
+            <div class="flex items-center justify-center gap-3 mb-3">
+                <span class="text-2xl">🎯</span>
+                <p class="text-slate-300 font-bold text-sm">เข้าร่วมสำเร็จแล้ว!</p>
+            </div>
+            <p class="text-slate-500 text-xs leading-relaxed">
+                รอครูกดเริ่มเกม...<br>
+                มองหน้าจอโปรเจคเตอร์เพื่อดูคำถาม
+            </p>
+        </div>
+
+        <!-- Animated dots -->
+        <div class="pulse-dots flex items-center justify-center gap-2">
+            <span></span><span></span><span></span>
         </div>
     </div>
 </div>
 
-<!-- ====================================================================
+<!-- ════════════════════════════════════════════
      SCREEN 5 · Host Question
-     ==================================================================== -->
+     ════════════════════════════════════════════ -->
 <div id="host-question-screen" class="screen hidden w-full max-w-5xl">
     <div class="glass rounded-3xl p-6">
-        <!-- Top bar -->
         <div class="flex justify-between items-center mb-4">
             <div class="flex items-center gap-3">
-                <span class="bg-indigo-900/60 border border-indigo-800/40 text-indigo-300 py-1.5 px-4 rounded-full text-xs font-bold">
-                    ข้อที่ <span id="host-q-index">1</span> / <span id="host-q-total">?</span>
-                </span>
+                <span class="q-chip">ข้อที่ <span id="host-q-index">1</span> / <span id="host-q-total">?</span></span>
                 <div class="progress-bar w-28">
                     <div id="host-progress-fill" class="progress-fill" style="width:0%"></div>
                 </div>
@@ -228,28 +538,25 @@
                 <span id="host-timer" class="text-3xl font-black text-red-400 bg-red-950/40 border border-red-900/30 py-1.5 px-5 rounded-xl tabular-nums">20</span>
             </div>
         </div>
-        <!-- Question -->
         <div class="bg-slate-900/60 rounded-2xl border border-slate-800 p-5 mb-5 min-h-[80px] flex items-center justify-center">
             <h2 id="host-question-text" class="text-2xl md:text-3xl font-bold text-center leading-snug">คำถาม...</h2>
         </div>
-        <!-- Options -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
-            <div id="container-opt-0" class="flex items-center bg-red-700/80 p-4 rounded-xl text-xl font-semibold border border-red-800/50"><span class="text-2xl mr-3 shrink-0">▲</span><span id="opt-text-0">-</span></div>
+            <div id="container-opt-0" class="flex items-center bg-rose-700/80 p-4 rounded-xl text-xl font-semibold border border-rose-800/50"><span class="text-2xl mr-3 shrink-0">▲</span><span id="opt-text-0">-</span></div>
             <div id="container-opt-1" class="flex items-center bg-blue-700/80 p-4 rounded-xl text-xl font-semibold border border-blue-800/50"><span class="text-2xl mr-3 shrink-0">◆</span><span id="opt-text-1">-</span></div>
-            <div id="container-opt-2" class="flex items-center bg-yellow-600/80 p-4 rounded-xl text-xl font-semibold border border-yellow-700/50 text-slate-900"><span class="text-2xl mr-3 shrink-0">●</span><span id="opt-text-2">-</span></div>
-            <div id="container-opt-3" class="flex items-center bg-green-700/80 p-4 rounded-xl text-xl font-semibold border border-green-800/50"><span class="text-2xl mr-3 shrink-0">■</span><span id="opt-text-3">-</span></div>
+            <div id="container-opt-2" class="flex items-center bg-amber-500/80 p-4 rounded-xl text-xl font-semibold border border-amber-600/50 text-slate-900"><span class="text-2xl mr-3 shrink-0">●</span><span id="opt-text-2">-</span></div>
+            <div id="container-opt-3" class="flex items-center bg-emerald-700/80 p-4 rounded-xl text-xl font-semibold border border-emerald-800/50"><span class="text-2xl mr-3 shrink-0">■</span><span id="opt-text-3">-</span></div>
         </div>
-        <!-- Realtime bars -->
         <div class="bg-slate-900/50 rounded-2xl border border-slate-800 p-4 mb-4">
             <div class="flex justify-between items-center mb-2">
                 <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">📊 เรียลไทม์</h4>
                 <span class="text-xs text-slate-500">ตอบแล้ว <span id="host-answers-count" class="text-white font-bold">0</span> / <span id="host-total-count">0</span></span>
             </div>
             <div class="bar-container">
-                <div class="bar-item"><span id="bar-count-0" class="bar-count">0</span><div id="bar-opt-0" class="bar bg-red-500" style="height:2px"></div><span class="bar-label">▲</span></div>
-                <div class="bar-item"><span id="bar-count-1" class="bar-count">0</span><div id="bar-opt-1" class="bar bg-blue-500" style="height:2px"></div><span class="bar-label">◆</span></div>
-                <div class="bar-item"><span id="bar-count-2" class="bar-count">0</span><div id="bar-opt-2" class="bar bg-yellow-500" style="height:2px"></div><span class="bar-label">●</span></div>
-                <div class="bar-item"><span id="bar-count-3" class="bar-count">0</span><div id="bar-opt-3" class="bar bg-green-500" style="height:2px"></div><span class="bar-label">■</span></div>
+                <div class="bar-item"><span id="bar-count-0" class="bar-count">0</span><div id="bar-opt-0" class="bar bg-rose-500" style="height:3px"></div><span class="bar-label">▲</span></div>
+                <div class="bar-item"><span id="bar-count-1" class="bar-count">0</span><div id="bar-opt-1" class="bar bg-blue-500" style="height:3px"></div><span class="bar-label">◆</span></div>
+                <div class="bar-item"><span id="bar-count-2" class="bar-count">0</span><div id="bar-opt-2" class="bar bg-amber-500" style="height:3px"></div><span class="bar-label">●</span></div>
+                <div class="bar-item"><span id="bar-count-3" class="bar-count">0</span><div id="bar-opt-3" class="bar bg-emerald-500" style="height:3px"></div><span class="bar-label">■</span></div>
             </div>
         </div>
         <div class="flex justify-between items-center">
@@ -259,53 +566,63 @@
     </div>
 </div>
 
-<!-- ====================================================================
-     SCREEN 6 · Player Answer Buttons
-     ==================================================================== -->
-<div id="player-question-screen" class="screen hidden w-full max-w-xl">
-    <!-- Question display on player phone -->
-    <div class="glass rounded-2xl p-4 mb-3">
-        <div class="flex justify-between items-center mb-2">
-            <span id="player-q-index" class="text-xs text-indigo-400 font-bold">ข้อ 1/1</span>
-            <div class="flex items-center gap-1.5">
-                <span class="text-slate-400 text-xs">⏱</span>
-                <span id="player-timer" class="text-xl font-black text-red-400 tabular-nums">--</span>
+<!-- ════════════════════════════════════════════
+     SCREEN 6 · Player Answer Buttons  ★ REDESIGNED ★
+     ════════════════════════════════════════════ -->
+<div id="player-question-screen" class="screen hidden w-full max-w-lg">
+
+    <!-- Question card -->
+    <div class="player-q-card mb-4">
+        <div class="flex justify-between items-center mb-3">
+            <span id="player-q-index" class="q-chip">ข้อ 1/1</span>
+
+            <!-- Circular timer -->
+            <div class="player-timer-wrap">
+                <svg width="72" height="72" viewBox="0 0 72 72">
+                    <circle class="timer-ring-bg" cx="36" cy="36" r="30"/>
+                    <circle id="player-timer-ring" class="timer-ring" cx="36" cy="36" r="30"
+                        stroke-dasharray="188.5" stroke-dashoffset="0"/>
+                </svg>
+                <div id="player-timer-label" class="timer-label">--</div>
             </div>
         </div>
-        <p id="player-question-text" class="text-sm font-bold text-white text-center leading-snug"></p>
+        <p id="player-question-text" class="text-base font-bold text-white text-center leading-snug"></p>
     </div>
-    <!-- Answer grid -->
-    <div class="grid grid-cols-2 gap-3">
-        <button data-opt="0" class="btn-answer-opt bg-red-600 hover:bg-red-500 text-white shadow-xl">
-            <span class="opt-icon text-3xl">▲</span>
+
+    <!-- Answer grid — 2×2 -->
+    <div class="grid grid-cols-2 gap-3 relative">
+        <button data-opt="0" class="btn-answer-opt opt-red">
+            <span class="opt-icon">▲</span>
             <span class="opt-text"></span>
         </button>
-        <button data-opt="1" class="btn-answer-opt bg-blue-600 hover:bg-blue-500 text-white shadow-xl">
-            <span class="opt-icon text-3xl">◆</span>
+        <button data-opt="1" class="btn-answer-opt opt-blue">
+            <span class="opt-icon">◆</span>
             <span class="opt-text"></span>
         </button>
-        <button data-opt="2" class="btn-answer-opt bg-yellow-500 hover:bg-yellow-400 text-slate-900 shadow-xl">
-            <span class="opt-icon text-3xl">●</span>
+        <button data-opt="2" class="btn-answer-opt opt-amber">
+            <span class="opt-icon">●</span>
             <span class="opt-text"></span>
         </button>
-        <button data-opt="3" class="btn-answer-opt bg-green-600 hover:bg-green-500 text-white shadow-xl">
-            <span class="opt-icon text-3xl">■</span>
+        <button data-opt="3" class="btn-answer-opt opt-green">
+            <span class="opt-icon">■</span>
             <span class="opt-text"></span>
         </button>
-    </div>
-    <div id="player-locked-msg" class="hidden mt-4 p-5 glass rounded-2xl text-center">
-        <p class="text-xl font-bold text-yellow-400">✅ ล็อคคำตอบแล้ว!</p>
-        <p class="text-xs text-slate-400 mt-1">รอดูเฉลยบนจอโปรเจคเตอร์</p>
+
+        <!-- Locked overlay — covers the whole grid -->
+        <div id="player-locked-overlay" class="hidden locked-overlay" style="border-radius:20px">
+            <span style="font-size:40px">✅</span>
+            <p style="font-size:18px;font-weight:900;color:#fbbf24">ล็อคคำตอบแล้ว!</p>
+            <p style="font-size:12px;color:#94a3b8;margin-top:2px">รอดูเฉลยบนโปรเจคเตอร์</p>
+        </div>
     </div>
 </div>
 
-<!-- ====================================================================
+<!-- ════════════════════════════════════════════
      SCREEN 7 · Host Leaderboard
-     ==================================================================== -->
+     ════════════════════════════════════════════ -->
 <div id="host-leaderboard-screen" class="screen hidden w-full max-w-3xl">
     <div class="glass rounded-3xl p-7">
         <h2 class="text-2xl font-black text-center mb-1 text-indigo-300">🏆 อันดับ</h2>
-        <!-- Correct answer reveal -->
         <div id="correct-answer-reveal" class="text-center mb-4 bg-slate-900/60 rounded-xl border border-slate-800 py-2 px-4"></div>
         <div id="host-leaderboard-list" class="space-y-2 mb-6 max-h-[360px] overflow-y-auto"></div>
         <div class="text-center">
@@ -314,29 +631,45 @@
     </div>
 </div>
 
-<!-- ====================================================================
-     SCREEN 8 · Player Feedback
-     ==================================================================== -->
-<div id="player-feedback-screen" class="screen hidden w-full max-w-md text-center">
-    <div id="feedback-card" class="rounded-3xl p-8 border">
-        <div id="feedback-icon" class="text-7xl mb-3">🎉</div>
-        <h2 id="feedback-title" class="text-4xl font-black mb-2"></h2>
-        <div id="feedback-streak" class="text-base font-black mb-4"></div>
-        <div class="space-y-2">
-            <p class="text-slate-200">คะแนนรอบนี้: <span id="feedback-gained-score" class="font-black text-2xl text-yellow-300">+0</span></p>
-            <p class="text-slate-400 text-sm">รวม: <span id="feedback-total-score" class="font-bold text-white">0</span> แต้ม</p>
-            <p class="text-slate-400 text-xs mt-2">อันดับ: <span id="feedback-rank" class="font-black text-white text-lg">#?</span></p>
+<!-- ════════════════════════════════════════════
+     SCREEN 8 · Player Feedback  ★ REDESIGNED ★
+     ════════════════════════════════════════════ -->
+<div id="player-feedback-screen" class="screen hidden w-full max-w-sm">
+    <div id="feedback-card" class="glass rounded-3xl p-8 border text-center">
+
+        <!-- Icon + title -->
+        <div id="feedback-icon" class="text-7xl mb-3" style="animation:scaleIn .4s cubic-bezier(.34,1.56,.64,1) both">🎉</div>
+        <h2 id="feedback-title" class="text-3xl font-black mb-1 text-white"></h2>
+        <div id="feedback-streak" class="mb-4 streak-fire text-2xl font-black text-orange-400"></div>
+
+        <!-- Score gained badge -->
+        <div class="flex justify-center mb-4">
+            <div id="feedback-score-badge" class="score-badge">+0</div>
         </div>
+
+        <!-- Stats row -->
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="bg-slate-900/60 rounded-2xl border border-slate-800 p-4">
+                <p class="text-xs text-slate-500 mb-1">คะแนนรวม</p>
+                <p id="feedback-total-score" class="text-2xl font-black text-white">0</p>
+                <p class="text-xs text-slate-500">แต้ม</p>
+            </div>
+            <div class="bg-slate-900/60 rounded-2xl border border-slate-800 p-4">
+                <p class="text-xs text-slate-500 mb-1">อันดับขณะนี้</p>
+                <p id="feedback-rank" class="text-2xl font-black text-yellow-400">#?</p>
+            </div>
+        </div>
+
+        <p class="text-xs text-slate-500">รอข้อถัดไปจากครู...</p>
     </div>
 </div>
 
-<!-- ====================================================================
+<!-- ════════════════════════════════════════════
      SCREEN 9 · Host End Screen
-     ==================================================================== -->
+     ════════════════════════════════════════════ -->
 <div id="host-end-screen" class="screen hidden w-full max-w-5xl">
     <div class="glass rounded-3xl p-7">
         <h2 class="text-3xl font-black text-center mb-8 text-yellow-400">🎊 สรุปผลการแข่งขัน</h2>
-        <!-- Podium -->
         <div class="flex flex-col sm:flex-row items-end justify-center gap-4 mb-8 min-h-[220px]">
             <div class="w-full sm:w-44 bg-slate-700/30 p-4 rounded-t-2xl border-t-4 border-slate-400 flex flex-col items-center" style="height:160px">
                 <div class="text-3xl mb-1">🥈</div>
@@ -357,15 +690,13 @@
                 <div id="podium-3-score" class="text-xs text-slate-300 mt-auto">-</div>
             </div>
         </div>
-        <!-- Ranking 4+ -->
         <div id="full-ranking-list" class="space-y-1 max-h-[180px] overflow-y-auto mb-6"></div>
-        <!-- Analytics -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div id="hardest-question-box" class="hidden stat-card border-l-4 border-red-500">
                 <h4 class="text-xs text-red-400 font-black uppercase tracking-wider mb-2">⚠️ ข้อที่ยากที่สุด</h4>
                 <p id="hardest-question-text" class="text-sm text-slate-300 leading-relaxed"></p>
                 <div class="mt-2 flex gap-2 flex-wrap">
-                    <span id="hardest-wrong-count"   class="tag-wrong"></span>
+                    <span id="hardest-wrong-count" class="tag-wrong"></span>
                     <span id="hardest-correct-count" class="tag-correct"></span>
                 </div>
             </div>
@@ -391,19 +722,29 @@
     </div>
 </div>
 
-<!-- ====================================================================
-     SCREEN 10 · Player End
-     ==================================================================== -->
-<div id="player-end-screen" class="screen hidden w-full max-w-md text-center">
+<!-- ════════════════════════════════════════════
+     SCREEN 10 · Player End  ★ REDESIGNED ★
+     ════════════════════════════════════════════ -->
+<div id="player-end-screen" class="screen hidden w-full max-w-sm text-center">
     <div class="glass rounded-3xl p-8">
-        <div id="player-end-medal"  class="text-5xl block mb-1">🏆</div>
-        <div id="player-final-avatar" class="text-6xl block mb-3">😊</div>
-        <h2 class="text-2xl font-black mb-5">จบการแข่งขัน!</h2>
-        <div class="bg-slate-900/60 rounded-2xl border border-slate-800 p-5 space-y-4 mb-6">
-            <div><p class="text-xs text-slate-400">อันดับสุดท้าย</p><p id="player-final-rank" class="text-5xl font-black text-yellow-400">#-</p></div>
-            <div><p class="text-xs text-slate-400">คะแนนรวม</p><p id="player-final-score" class="text-2xl font-bold">0 แต้ม</p></div>
+        <!-- Medal -->
+        <div id="player-end-medal" class="text-6xl mb-2" style="animation:scaleIn .5s cubic-bezier(.34,1.56,.64,1) both">🏆</div>
+        <div id="player-final-avatar" class="text-7xl mb-4" style="animation:scaleIn .5s .1s cubic-bezier(.34,1.56,.64,1) both">😊</div>
+        <h2 class="text-2xl font-black mb-6">จบการแข่งขัน!</h2>
+
+        <!-- Score card -->
+        <div class="bg-slate-900/60 rounded-2xl border border-slate-800 p-6 mb-6">
+            <div class="mb-4">
+                <p class="text-xs text-slate-500 mb-1 uppercase tracking-wider">อันดับสุดท้าย</p>
+                <p id="player-final-rank" class="text-6xl font-black text-yellow-400">#-</p>
+            </div>
+            <div class="border-t border-slate-800 pt-4">
+                <p class="text-xs text-slate-500 mb-1 uppercase tracking-wider">คะแนนรวม</p>
+                <p id="player-final-score" class="text-3xl font-black text-white">0 แต้ม</p>
+            </div>
         </div>
-        <button id="btn-restart-player" class="btn-primary w-full py-3 rounded-xl">เล่นอีกครั้ง 🔄</button>
+
+        <button id="btn-restart-player" class="btn-primary w-full py-4 rounded-2xl text-base">🔄 เล่นอีกครั้ง</button>
     </div>
 </div>
 
@@ -413,11 +754,7 @@
     © 2026 MKS-QUIZ STUDIO · Firebase + Web Audio API · Built for Teachers 👨‍🏫
 </footer>
 
-<!-- ====================================================================
-     MODALS
-     ==================================================================== -->
-
-<!-- Modal: Add/Edit Quiz -->
+<!-- ════ MODALS ════ -->
 <div id="modal-add-quiz" class="modal-overlay hidden">
     <div class="modal-box">
         <div class="flex justify-between items-center mb-5">
@@ -437,9 +774,7 @@
             </div>
         </div>
         <div id="modal-questions-list" class="space-y-3 max-h-[45vh] overflow-y-auto mb-4 pr-1"></div>
-        <button id="btn-add-q-row" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 border-dashed text-slate-400 hover:text-white text-sm font-bold py-2.5 rounded-xl transition mb-4">
-            + เพิ่มข้อคำถาม
-        </button>
+        <button id="btn-add-q-row" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 border-dashed text-slate-400 hover:text-white text-sm font-bold py-2.5 rounded-xl transition mb-4">+ เพิ่มข้อคำถาม</button>
         <div class="flex gap-3 justify-end">
             <button onclick="document.getElementById('modal-add-quiz').classList.add('hidden')" class="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 px-6 rounded-xl text-sm transition">ยกเลิก</button>
             <button id="btn-save-quiz-modal" class="btn-primary py-2.5 px-8 rounded-xl text-sm">💾 บันทึก</button>
@@ -447,7 +782,6 @@
     </div>
 </div>
 
-<!-- Modal: Change Password -->
 <div id="modal-change-pw" class="modal-overlay hidden">
     <div class="modal-box max-w-sm">
         <div class="flex justify-between items-center mb-5">
@@ -455,19 +789,15 @@
             <button onclick="document.getElementById('modal-change-pw').classList.add('hidden')" class="text-slate-500 hover:text-white text-2xl">×</button>
         </div>
         <div class="space-y-3">
-            <input id="old-pw" type="password" placeholder="รหัสผ่านเดิม"
-                class="w-full bg-slate-950 border border-slate-700 rounded-xl py-2.5 px-4 focus:outline-none focus:border-yellow-500 text-sm">
-            <input id="new-pw" type="password" placeholder="รหัสผ่านใหม่ (≥4 ตัว)"
-                class="w-full bg-slate-950 border border-slate-700 rounded-xl py-2.5 px-4 focus:outline-none focus:border-yellow-500 text-sm">
-            <input id="confirm-pw" type="password" placeholder="ยืนยันรหัสผ่านใหม่"
-                class="w-full bg-slate-950 border border-slate-700 rounded-xl py-2.5 px-4 focus:outline-none focus:border-yellow-500 text-sm">
+            <input id="old-pw" type="password" placeholder="รหัสผ่านเดิม" class="w-full bg-slate-950 border border-slate-700 rounded-xl py-2.5 px-4 focus:outline-none focus:border-yellow-500 text-sm">
+            <input id="new-pw" type="password" placeholder="รหัสผ่านใหม่ (≥4 ตัว)" class="w-full bg-slate-950 border border-slate-700 rounded-xl py-2.5 px-4 focus:outline-none focus:border-yellow-500 text-sm">
+            <input id="confirm-pw" type="password" placeholder="ยืนยันรหัสผ่านใหม่" class="w-full bg-slate-950 border border-slate-700 rounded-xl py-2.5 px-4 focus:outline-none focus:border-yellow-500 text-sm">
             <div id="pw-change-msg" class="hidden text-xs rounded-xl py-2 px-3"></div>
             <button id="btn-do-change-pw" class="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-black py-3 rounded-xl transition">บันทึกรหัสผ่านใหม่</button>
         </div>
     </div>
 </div>
 
-<!-- QR Zoom Overlay -->
 <div id="qr-zoom-overlay" class="qr-zoom-overlay hidden" onclick="closeQRZoom()">
     <div class="text-center" onclick="event.stopPropagation()">
         <div id="qr-zoom-code" class="bg-white p-5 rounded-3xl shadow-2xl mb-4 inline-block"></div>
@@ -480,15 +810,12 @@
     </div>
 </div>
 
-<!-- ====================================================================
-     APP SCRIPT (ES Module)
-     ==================================================================== -->
+<!-- ════ SCRIPT ════ -->
 <script type="module">
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getDatabase, ref, set, update, onValue, get, runTransaction, remove }
     from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-// ── Firebase ──
 const FB_CONFIG = {
     apiKey:            "AIzaSyAeHuCrGaIYVxfk7q1WAF2LZyejqhaAeWs",
     authDomain:        "mks-quize.firebaseapp.com",
@@ -501,9 +828,7 @@ const FB_CONFIG = {
 const app = initializeApp(FB_CONFIG);
 const db  = getDatabase(app);
 
-// ─────────────────────────────────────────────
-//  CONSTANTS
-// ─────────────────────────────────────────────
+// ── Constants ──
 const AVATARS = ['🦁','🐯','🦊','🐼','🐨','🦄','🐰','🐶','🐱','🐭','🐸','🐙',
                  '🐒','🐥','🐹','🦝','🦔','🐺','🦋','🐬','🐧','🦀','🐲','🌟',
                  '🦖','🦕','🐊','🦑','🐳','🐉','🦞','🧸'];
@@ -518,11 +843,9 @@ const LS_KEY  = 'mks_quizzes_v3';
 const PW_KEY  = 'mks_teacher_pw';
 const CONF_COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#ec4899','#06b6d4'];
 
-// ─────────────────────────────────────────────
-//  STATE
-// ─────────────────────────────────────────────
+// ── State ──
 let avatarIdx        = Math.floor(Math.random() * AVATARS.length);
-let currentRole      = null;   // 'host' | 'player'
+let currentRole      = null;
 let currentPin       = null;
 let currentPlayerId  = null;
 let editingQuizId    = null;
@@ -537,10 +860,9 @@ let curNotes         = [];
 let isTense          = false;
 let qHistory         = {};
 let joinUrl          = '';
+let playerTimerMax   = 20;
 
-// ─────────────────────────────────────────────
-//  AUDIO
-// ─────────────────────────────────────────────
+// ── Audio ──
 let audioCtx = null;
 function initAudio() {
     if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
@@ -594,9 +916,7 @@ function sfx(type) {
     sfxMap[type]?.();
 }
 
-// ─────────────────────────────────────────────
-//  QUIZ LIBRARY (localStorage)
-// ─────────────────────────────────────────────
+// ── Quiz Library ──
 const DEFAULTS=[{
     id:'default-it',name:'💻 ความรู้ไอทีเบื้องต้น',tags:['ไอที'],createdAt:Date.now(),playCount:0,
     questions:[
@@ -614,9 +934,7 @@ const DEFAULTS=[{
         {q:'เซลล์พืชต่างจากเซลล์สัตว์ตรงมีอะไร?',options:['ไมโตคอนเดรีย','ผนังเซลล์','นิวเคลียส','ไซโทพลาซึม'],correct:1,timeLimit:20},
     ]
 }];
-function getQuizzes(){
-    try{const r=localStorage.getItem(LS_KEY);if(!r){localStorage.setItem(LS_KEY,JSON.stringify(DEFAULTS));return[...DEFAULTS];}return JSON.parse(r);}catch{return[...DEFAULTS];}
-}
+function getQuizzes(){try{const r=localStorage.getItem(LS_KEY);if(!r){localStorage.setItem(LS_KEY,JSON.stringify(DEFAULTS));return[...DEFAULTS];}return JSON.parse(r);}catch{return[...DEFAULTS];}}
 function saveQL(list){localStorage.setItem(LS_KEY,JSON.stringify(list));}
 function addQuiz(name,qs,tags=[]){const list=getQuizzes();const q={id:'quiz_'+Date.now(),name,tags,questions:qs,createdAt:Date.now(),playCount:0};list.push(q);saveQL(list);return q;}
 function updateQuiz(id,name,qs,tags=[]){const list=getQuizzes();const i=list.findIndex(q=>q.id===id);if(i===-1)return;list[i]={...list[i],name,tags,questions:qs,updatedAt:Date.now()};saveQL(list);}
@@ -625,10 +943,8 @@ function incPlayCount(id){const list=getQuizzes();const q=list.find(x=>x.id===id
 function getPW(){return localStorage.getItem(PW_KEY)||'teacher123';}
 function setPW(pw){localStorage.setItem(PW_KEY,pw);}
 
-// ─────────────────────────────────────────────
-//  SCREEN UTILS
-// ─────────────────────────────────────────────
-function showScreen(id){document.querySelectorAll('.screen').forEach(e=>e.classList.add('hidden'));document.getElementById(id)?.classList.remove('hidden');}
+// ── Screen Utils ──
+function showScreen(id){document.querySelectorAll('.screen').forEach(e=>e.classList.add('hidden'));const s=document.getElementById(id);if(s){s.classList.remove('hidden');s.style.animation='none';requestAnimationFrame(()=>{s.style.animation='';});}}
 function toast(msg,type='ok'){
     document.querySelector('.copy-toast')?.remove();
     const el=document.createElement('div');el.className='copy-toast';
@@ -645,9 +961,7 @@ function confetti(n=60){
 function copyTxt(txt,label='คัดลอกแล้ว'){navigator.clipboard.writeText(txt).then(()=>toast('✅ '+label));}
 function fmt(n){return(n||0).toLocaleString('th-TH');}
 
-// ─────────────────────────────────────────────
-//  AVATAR GRID
-// ─────────────────────────────────────────────
+// ── Avatar Grid ──
 function buildAvatarGrid(){
     const g=document.getElementById('avatar-grid');if(!g)return;
     g.innerHTML='';
@@ -658,16 +972,42 @@ function buildAvatarGrid(){
         btn.onclick=()=>{
             avatarIdx=i;
             g.querySelectorAll('.avatar-btn').forEach((b,j)=>b.classList.toggle('selected',j===i));
-            document.getElementById('selected-avatar-preview').textContent=av;
+            const preview=document.getElementById('selected-avatar-preview');
+            if(preview){preview.textContent=av;preview.style.animation='none';requestAnimationFrame(()=>preview.style.animation='');}
         };
         g.appendChild(btn);
     });
-    document.getElementById('selected-avatar-preview').textContent=AVATARS[avatarIdx];
+    const preview=document.getElementById('selected-avatar-preview');
+    if(preview) preview.textContent=AVATARS[avatarIdx];
 }
 
-// ─────────────────────────────────────────────
-//  QR CODE
-// ─────────────────────────────────────────────
+// ── Circular Timer (player) ──
+const RING_CIRC = 2 * Math.PI * 30; // r=30 → ≈188.5
+function updateTimerRing(remaining, total) {
+    const ring  = document.getElementById('player-timer-ring');
+    const label = document.getElementById('player-timer-label');
+    if (!ring || !label) return;
+    const pct   = Math.max(0, remaining / total);
+    const offset = RING_CIRC * (1 - pct);
+    ring.style.strokeDashoffset = offset;
+    label.textContent = remaining;
+    const tense = remaining <= 5;
+    ring.classList.toggle('tense', tense);
+    label.classList.toggle('tense', tense);
+}
+
+// ── Ripple Effect ──
+function addRipple(btn, e) {
+    const r = document.createElement('span');
+    r.classList.add('ripple');
+    const rect = btn.getBoundingClientRect();
+    r.style.top  = (e.clientY - rect.top)  + 'px';
+    r.style.left = (e.clientX - rect.left) + 'px';
+    btn.appendChild(r);
+    setTimeout(() => r.remove(), 600);
+}
+
+// ── QR ──
 function makeQR(containerId,url,size=150){
     const c=document.getElementById(containerId);if(!c)return;
     c.innerHTML='';
@@ -675,15 +1015,13 @@ function makeQR(containerId,url,size=150){
 }
 window.closeQRZoom=()=>document.getElementById('qr-zoom-overlay').classList.add('hidden');
 
-// ─────────────────────────────────────────────
-//  QUIZ STUDIO RENDER
-// ─────────────────────────────────────────────
+// ── Studio ──
 function renderStudio(filterTerm=''){
     const cont=document.getElementById('quiz-list-container');
     let list=getQuizzes();
     if(filterTerm) list=list.filter(q=>q.name.toLowerCase().includes(filterTerm.toLowerCase())||(q.tags||[]).join(' ').toLowerCase().includes(filterTerm));
     document.getElementById('quiz-count').textContent=`${list.length} ชุด`;
-    if(!list.length){cont.innerHTML=`<p class="text-slate-500 text-sm text-center py-10">ไม่พบชุดข้อสอบ — กด "สร้างใหม่" หรือนำเข้า CSV</p>`;return;}
+    if(!list.length){cont.innerHTML=`<p class="text-slate-500 text-sm text-center py-10">ไม่พบชุดข้อสอบ</p>`;return;}
     cont.innerHTML='';
     list.forEach(quiz=>{
         const el=document.createElement('div');
@@ -693,7 +1031,7 @@ function renderStudio(filterTerm=''){
             <div class="min-w-0 mr-3 flex-1">
                 <h4 class="font-bold text-white text-sm">${quiz.name}</h4>
                 <div class="flex flex-wrap gap-1 mt-1">${tags}</div>
-                <p class="text-xs text-slate-500 mt-0.5">${quiz.questions.length} ข้อ · เล่นไปแล้ว ${quiz.playCount||0} ครั้ง · ${relTime(quiz.createdAt)}</p>
+                <p class="text-xs text-slate-500 mt-0.5">${quiz.questions.length} ข้อ · เล่น ${quiz.playCount||0} ครั้ง · ${relTime(quiz.createdAt)}</p>
             </div>
             <div class="flex items-center gap-1.5 shrink-0 quiz-actions">
                 <button class="bg-slate-700 hover:bg-indigo-600 border border-slate-600 text-slate-300 hover:text-white text-xs font-bold py-1.5 px-3 rounded-lg transition" data-edit="${quiz.id}">✏️</button>
@@ -711,9 +1049,7 @@ function renderStudio(filterTerm=''){
 }
 function relTime(ts){if(!ts)return'-';const d=Date.now()-ts,h=3600000,dy=86400000;if(d<h)return'เมื่อกี้';if(d<dy)return`${Math.floor(d/h)} ชม.ที่แล้ว`;return`${Math.floor(d/dy)} วันที่แล้ว`;}
 
-// ─────────────────────────────────────────────
-//  MODAL: ADD/EDIT QUIZ
-// ─────────────────────────────────────────────
+// ── Modal ──
 function openAddModal(){
     editingQuizId=null;
     document.getElementById('modal-quiz-title').textContent='✏️ เพิ่มชุดข้อสอบใหม่';
@@ -747,8 +1083,8 @@ function addQRow(data=null){
         <div class="grid grid-cols-2 gap-2">
             <input type="text" class="opt opt-0 bg-slate-950 border border-red-900/40 rounded-lg py-1.5 px-2.5 text-xs focus:outline-none focus:border-red-500" placeholder="▲ ตัวเลือก 1" value="${data?.options?.[0]||''}">
             <input type="text" class="opt opt-1 bg-slate-950 border border-blue-900/40 rounded-lg py-1.5 px-2.5 text-xs focus:outline-none focus:border-blue-500" placeholder="◆ ตัวเลือก 2" value="${data?.options?.[1]||''}">
-            <input type="text" class="opt opt-2 bg-slate-950 border border-yellow-900/40 rounded-lg py-1.5 px-2.5 text-xs focus:outline-none focus:border-yellow-500" placeholder="● ตัวเลือก 3 (ไม่บังคับ)" value="${data?.options?.[2]||''}">
-            <input type="text" class="opt opt-3 bg-slate-950 border border-green-900/40 rounded-lg py-1.5 px-2.5 text-xs focus:outline-none focus:border-green-500" placeholder="■ ตัวเลือก 4 (ไม่บังคับ)" value="${data?.options?.[3]||''}">
+            <input type="text" class="opt opt-2 bg-slate-950 border border-yellow-900/40 rounded-lg py-1.5 px-2.5 text-xs focus:outline-none focus:border-yellow-500" placeholder="● ตัวเลือก 3" value="${data?.options?.[2]||''}">
+            <input type="text" class="opt opt-3 bg-slate-950 border border-green-900/40 rounded-lg py-1.5 px-2.5 text-xs focus:outline-none focus:border-green-500" placeholder="■ ตัวเลือก 4" value="${data?.options?.[3]||''}">
         </div>
         <div class="flex gap-3 items-center flex-wrap">
             <label class="text-xs text-slate-400 shrink-0">✅ ตอบถูก:</label>
@@ -784,9 +1120,7 @@ function saveQuizModal(){
     renderStudio();
 }
 
-// ─────────────────────────────────────────────
-//  CSV
-// ─────────────────────────────────────────────
+// ── CSV ──
 function parseCSVLine(line){const r=[];let cur='',inQ=false;for(const ch of line){if(ch==='"'){inQ=!inQ;}else if(ch===','&&!inQ){r.push(cur);cur='';}else{cur+=ch;}}r.push(cur);return r;}
 function handleCSV(file){
     const reader=new FileReader();
@@ -795,8 +1129,7 @@ function handleCSV(file){
         for(let i=1;i<lines.length;i++){
             const ln=lines[i].trim();if(!ln)continue;
             const c=parseCSVLine(ln);if(c.length<6)continue;
-            const q=c[0].replace(/^"|"$/g,'').trim();
-            if(!q)continue;
+            const q=c[0].replace(/^"|"$/g,'').trim();if(!q)continue;
             qs.push({q,options:[1,2,3,4].map(j=>(c[j]||'').replace(/^"|"$/g,'').trim()),correct:Math.max(0,parseInt(c[5])-1)||0,timeLimit:parseInt(c[6])||15});
         }
         if(!qs.length){toast('❌ ไม่พบข้อมูล','err');return;}
@@ -812,40 +1145,26 @@ function dlTemplate(){
     const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([BOM+h+rows],{type:'text/csv;charset=utf-8;'})),download:'mks_quiz_template.csv'});a.click();
 }
 
-// ─────────────────────────────────────────────
-//  LAUNCH (Host open room)
-// ─────────────────────────────────────────────
+// ── Launch ──
 async function launchQuiz(id){
     const quiz=getQuizzes().find(q=>q.id===id);if(!quiz)return;
-    initAudio();
-    activeQuiz=quiz;
-    incPlayCount(id);
-    qHistory={};
+    initAudio(); activeQuiz=quiz; incPlayCount(id); qHistory={};
     quiz.questions.forEach((_,i)=>{qHistory[i]={correct:0,wrong:0,count:0,opts:[0,0,0,0]};});
-
     const pin=Math.floor(100000+Math.random()*900000).toString();
     currentPin=pin; currentRole='host';
-
-    await set(ref(db,`rooms/${pin}`),{
-        state:'lobby',quizName:quiz.name,currentQuestionIndex:0,questionStartTime:0,
-        questions:quiz.questions,players:{}
-    });
-
+    await set(ref(db,`rooms/${pin}`),{state:'lobby',quizName:quiz.name,currentQuestionIndex:0,questionStartTime:0,questions:quiz.questions,players:{}});
     joinUrl=`${location.origin}${location.pathname}?pin=${pin}`;
     document.getElementById('host-pin-display').textContent=pin;
     document.getElementById('current-page-url').textContent=joinUrl;
     document.getElementById('lobby-quiz-info').innerHTML=`<span class="font-bold text-white">${quiz.name}</span> · ${quiz.questions.length} ข้อ`;
-
     makeQR('lobby-qrcode',joinUrl,150);
     document.getElementById('lobby-qrcode').onclick=openZoom;
     document.getElementById('btn-zoom-qr').onclick=openZoom;
     document.getElementById('btn-copy-link').onclick=()=>copyTxt(joinUrl,'คัดลอกลิงก์แล้ว');
     document.getElementById('btn-copy-url-text').onclick=()=>copyTxt(joinUrl,'คัดลอก URL แล้ว');
     document.getElementById('qr-zoom-copy').onclick=()=>copyTxt(joinUrl,'คัดลอกแล้ว');
-
     showScreen('host-lobby-screen');
     lastSeenState=null; lastSeenQIdx=-1;
-
     onValue(ref(db,`rooms/${pin}/players`),snap=>renderLobby(snap.val()||{}));
     onValue(ref(db,`rooms/${pin}`),snap=>{ if(snap.val()&&currentRole==='host') hostUpdate(snap.val()); });
 }
@@ -857,20 +1176,18 @@ function openZoom(){
 function renderLobby(players){
     const g=document.getElementById('player-list-grid'),list=Object.values(players);
     document.getElementById('player-count').textContent=list.length;
-    if(!list.length){g.innerHTML=`<p class="col-span-full text-center text-slate-600 text-xs py-6">รอผู้เล่นเข้าร่วม...</p>`;return;}
+    if(!list.length){g.innerHTML=`<p class="w-full text-center text-slate-600 text-xs py-4">รอผู้เล่นเข้าร่วม...</p>`;return;}
     g.innerHTML='';
     list.forEach(p=>{
         const c=document.createElement('div');
-        c.className='bg-slate-800/70 border border-slate-700 p-2.5 rounded-xl flex items-center gap-2 text-sm font-bold truncate';
+        c.className='player-chip';
         c.innerHTML=`<span class="text-xl">${p.avatar||'🐯'}</span><span class="truncate text-slate-200">${p.nickname}</span>`;
         g.appendChild(c);
     });
     sfx('join');
 }
 
-// ─────────────────────────────────────────────
-//  HOST ROOM UPDATES
-// ─────────────────────────────────────────────
+// ── Host Update ──
 function hostUpdate(room){
     const {state,currentQuestionIndex:qi,questions,players}=room;
     const q=questions?.[qi];
@@ -887,7 +1204,7 @@ function hostUpdate(room){
                 document.getElementById(`container-opt-${i}`).classList.toggle('hidden',!has);
                 if(has)document.getElementById(`opt-text-${i}`).textContent=q.options[i];
             }
-            for(let i=0;i<4;i++){document.getElementById(`bar-opt-${i}`).style.height='2px';document.getElementById(`bar-count-${i}`).textContent='0';}
+            for(let i=0;i<4;i++){document.getElementById(`bar-opt-${i}`).style.height='3px';document.getElementById(`bar-count-${i}`).textContent='0';}
             document.getElementById('host-answers-count').textContent='0';
             randomizeScale(); startBGM(); runHostTimer(q.timeLimit);
             lastSeenState='question'; lastSeenQIdx=qi;
@@ -928,7 +1245,7 @@ function updateBars(players,qi){
     document.getElementById('host-total-count').textContent=total;
     const cnt=[0,0,0,0];pl.forEach(p=>{if(p.answered&&p.selectedOptionIndex>=0)cnt[p.selectedOptionIndex]++;});
     const mx=Math.max(...cnt,1);
-    for(let i=0;i<4;i++){document.getElementById(`bar-opt-${i}`).style.height=`${Math.max((cnt[i]/mx)*78,2)}px`;document.getElementById(`bar-count-${i}`).textContent=cnt[i];}
+    for(let i=0;i<4;i++){document.getElementById(`bar-opt-${i}`).style.height=`${Math.max((cnt[i]/mx)*78,3)}px`;document.getElementById(`bar-count-${i}`).textContent=cnt[i];}
     if(ans===total&&total>0&&qHistory[qi]){
         const correct=pl.filter(p=>p.answered&&p.lastAnswerCorrect).length;
         qHistory[qi]={correct,wrong:total-correct,count:total,opts:cnt};
@@ -962,7 +1279,7 @@ function renderLB(players,qi,questions){
     const q=questions?.[qi];
     const rev=document.getElementById('correct-answer-reveal');
     if(rev&&q){
-        const cols=['text-red-400','text-blue-400','text-yellow-400','text-green-400'];
+        const cols=['text-rose-400','text-blue-400','text-amber-400','text-emerald-400'];
         rev.innerHTML=`<p class="text-xs text-slate-500">เฉลยข้อ ${qi+1}</p><p class="text-sm font-bold ${cols[q.correct]}">${['▲','◆','●','■'][q.correct]} ${q.options[q.correct]}</p>`;
     }
 }
@@ -999,36 +1316,49 @@ function renderAnalytics(room){
     document.getElementById('all-question-stats-list').innerHTML=stats.map(s=>{
         const pct=s.count>0?Math.round((s.correct/s.count)*100):0;
         const col=pct>=70?'bg-emerald-600':pct>=40?'bg-yellow-600':'bg-red-600';
-        return`<div class="flex items-center gap-2 text-xs py-1"><span class="text-slate-400 w-5 text-right shrink-0">${s.idx+1}.</span><span class="flex-1 text-slate-300 truncate" title="${s.q}">${s.q}</span><div class="w-20 h-2 bg-slate-800 rounded-full overflow-hidden shrink-0"><div class="${col} h-full rounded-full" style="width:${pct}%"></div></div><span class="text-slate-400 w-9 text-right shrink-0">${pct}%</span></div>`;
+        return`<div class="flex items-center gap-2 text-xs py-1"><span class="text-slate-400 w-5 text-right shrink-0">${s.idx+1}.</span><span class="flex-1 text-slate-300 truncate">${s.q}</span><div class="w-20 h-2 bg-slate-800 rounded-full overflow-hidden shrink-0"><div class="${col} h-full rounded-full" style="width:${pct}%"></div></div><span class="text-slate-400 w-9 text-right shrink-0">${pct}%</span></div>`;
     }).join('');
 }
 
-// ─────────────────────────────────────────────
-//  PLAYER LOGIC
-// ─────────────────────────────────────────────
+// ── Player Logic ──
 async function joinGame(){
     const pin=document.getElementById('player-pin-input').value.trim();
     const nick=document.getElementById('player-name-input').value.trim();
     const errEl=document.getElementById('join-error');
+    const btn=document.getElementById('btn-join-game');
     errEl.classList.add('hidden');
     if(!pin||!nick){errEl.textContent='❌ กรอก PIN และชื่อด้วย';errEl.classList.remove('hidden');return;}
     initAudio();
-    const snap=await get(ref(db,`rooms/${pin}`));
-    if(!snap.exists()){errEl.textContent='❌ ไม่พบห้องนี้';errEl.classList.remove('hidden');return;}
-    const room=snap.val();
-    if(room.state!=='lobby'){errEl.textContent='❌ เกมเริ่มไปแล้ว';errEl.classList.remove('hidden');return;}
-    currentPin=pin; currentRole='player';
-    currentPlayerId='p_'+Math.random().toString(36).substr(2,9);
-    await set(ref(db,`rooms/${pin}/players/${currentPlayerId}`),{
-        nickname:nick,avatar:AVATARS[avatarIdx],score:0,streak:0,
-        answered:false,lastAnswerCorrect:false,pointsGained:0,selectedOptionIndex:-1
-    });
-    document.getElementById('player-lobby-avatar').textContent=AVATARS[avatarIdx];
-    document.getElementById('player-lobby-name').textContent=nick;
-    showScreen('player-lobby-screen');
-    lastSeenState=null; lastSeenQIdx=-1;
-    onValue(ref(db,`rooms/${pin}`),snap=>{ if(snap.val()&&currentRole==='player') playerUpdate(snap.val()); });
+
+    // Loading state
+    btn.classList.add('btn-loading');
+    btn.innerHTML='<span class="spinner"></span> กำลังเชื่อมต่อ...';
+
+    try {
+        const snap=await get(ref(db,`rooms/${pin}`));
+        if(!snap.exists()){errEl.textContent='❌ ไม่พบห้องนี้';errEl.classList.remove('hidden');return;}
+        const room=snap.val();
+        if(room.state!=='lobby'){errEl.textContent='❌ เกมเริ่มไปแล้ว';errEl.classList.remove('hidden');return;}
+        currentPin=pin; currentRole='player';
+        currentPlayerId='p_'+Math.random().toString(36).substr(2,9);
+        await set(ref(db,`rooms/${pin}/players/${currentPlayerId}`),{
+            nickname:nick,avatar:AVATARS[avatarIdx],score:0,streak:0,
+            answered:false,lastAnswerCorrect:false,pointsGained:0,selectedOptionIndex:-1
+        });
+        document.getElementById('player-lobby-avatar').textContent=AVATARS[avatarIdx];
+        document.getElementById('player-lobby-name').textContent=nick;
+        showScreen('player-lobby-screen');
+        lastSeenState=null; lastSeenQIdx=-1;
+        onValue(ref(db,`rooms/${pin}`),snap=>{ if(snap.val()&&currentRole==='player') playerUpdate(snap.val()); });
+    } catch(err) {
+        errEl.textContent='❌ เกิดข้อผิดพลาด ลองใหม่อีกครั้ง';
+        errEl.classList.remove('hidden');
+    } finally {
+        btn.classList.remove('btn-loading');
+        btn.innerHTML='เข้าร่วมเลย! 🏃';
+    }
 }
+
 function playerUpdate(room){
     const {state,currentQuestionIndex:qi,questions,players}=room;
     const me=players?.[currentPlayerId];if(!me)return;
@@ -1037,23 +1367,36 @@ function playerUpdate(room){
         if(lastSeenState!=='question'||lastSeenQIdx!==qi){
             clearInterval(playerTimerInt);
             const q=questions[qi];
+            playerTimerMax=q.timeLimit;
             showScreen('player-question-screen');
-            document.getElementById('player-locked-msg').classList.add('hidden');
+
+            // Hide locked overlay
+            document.getElementById('player-locked-overlay').classList.add('hidden');
+
             document.getElementById('player-question-text').textContent=q.q;
             document.getElementById('player-q-index').textContent=`ข้อ ${qi+1}/${questions.length}`;
+
             for(let i=0;i<4;i++){
                 const btn=document.querySelector(`[data-opt="${i}"]`);if(!btn)continue;
                 const has=!!q.options[i];
                 btn.classList.toggle('hidden',!has);
-                btn.disabled=false;btn.classList.remove('opacity-30');
-                if(has){btn.querySelector('.opt-text').textContent=q.options[i];btn.querySelector('.opt-icon').textContent=['▲','◆','●','■'][i];}
+                btn.disabled=false;
+                btn.classList.remove('dimmed','chosen','opacity-30');
+                if(has) btn.querySelector('.opt-text').textContent=q.options[i];
             }
+
+            // Reset + start timer ring
             let t=q.timeLimit;
-            const tel=document.getElementById('player-timer');tel.textContent=t;tel.classList.remove('timer-critical');
+            updateTimerRing(t, t);
             playerTimerInt=setInterval(()=>{
-                t--;tel.textContent=t;sfx('countdown');
-                if(t<=5)tel.classList.add('timer-critical');
-                if(t<=0){clearInterval(playerTimerInt);document.querySelectorAll('[data-opt]').forEach(b=>{b.disabled=true;b.classList.add('opacity-30');});document.getElementById('player-locked-msg').classList.remove('hidden');}
+                t--;
+                updateTimerRing(t, q.timeLimit);
+                sfx('countdown');
+                if(t<=0){
+                    clearInterval(playerTimerInt);
+                    document.querySelectorAll('[data-opt]').forEach(b=>{b.disabled=true;b.classList.add('dimmed');});
+                    document.getElementById('player-locked-overlay').classList.remove('hidden');
+                }
             },1000);
             lastSeenState='question'; lastSeenQIdx=qi;
         }
@@ -1063,20 +1406,27 @@ function playerUpdate(room){
             const sorted=Object.values(players).sort((a,b)=>b.score-a.score);
             const rank=sorted.findIndex(p=>p.nickname===me.nickname)+1;
             const streak=me.streak||0;
-            document.getElementById('feedback-gained-score').textContent=`+${fmt(me.pointsGained)}`;
+
+            // Score badge
+            document.getElementById('feedback-score-badge').textContent=`+${fmt(me.pointsGained)}`;
             document.getElementById('feedback-total-score').textContent=fmt(me.score);
             document.getElementById('feedback-rank').textContent=`#${rank}`;
-            document.getElementById('feedback-streak').textContent=streak>=3?`🔥 STREAK x${streak}!`:'';
+
+            // Streak
+            const streakEl=document.getElementById('feedback-streak');
+            streakEl.textContent=streak>=3?`🔥 STREAK ×${streak}!`:'';
+
             const card=document.getElementById('feedback-card');
             if(me.lastAnswerCorrect){
-                card.className='rounded-3xl p-8 border bg-emerald-900/60 border-emerald-700';
+                card.className='glass rounded-3xl p-8 border text-center feedback-correct';
                 document.getElementById('feedback-icon').textContent=streak>=5?'🔥':streak>=3?'⚡':'🎉';
-                document.getElementById('feedback-title').textContent=streak>=3?`Streak x${streak}!`:'ตอบถูก!';
+                document.getElementById('feedback-title').textContent=streak>=3?`Streak ×${streak}!`:'ตอบถูก!';
                 if(streak>=3)sfx('streak');else sfx('correct');
+                if(streak>=3)confetti(30);
             } else {
-                card.className='rounded-3xl p-8 border bg-red-900/60 border-red-700';
+                card.className='glass rounded-3xl p-8 border text-center feedback-wrong';
                 document.getElementById('feedback-icon').textContent='❌';
-                document.getElementById('feedback-title').textContent='ยังไม่ถูกต้อง';
+                document.getElementById('feedback-title').textContent='ยังไม่ถูก!';
                 sfx('incorrect');
             }
             showScreen('player-feedback-screen');
@@ -1092,18 +1442,36 @@ function playerUpdate(room){
             document.getElementById('player-final-score').textContent=`${fmt(me.score)} แต้ม`;
             document.getElementById('player-end-medal').textContent=rank===1?'👑':rank===2?'🥈':rank===3?'🥉':'🎮';
             showScreen('player-end-screen');
+            sfx('gameover');
+            if(rank<=3) confetti(60);
             lastSeenState='ended';
         }
     }
 }
-// Answer submit
+
+// ── Answer submit with ripple + visual feedback ──
 document.querySelectorAll('[data-opt]').forEach(btn=>{
-    btn.addEventListener('click',async()=>{
+    btn.addEventListener('click', async(e)=>{
+        if(btn.disabled) return;
         const opt=parseInt(btn.dataset.opt);
+
+        // Ripple
+        addRipple(btn, e);
+
         clearInterval(playerTimerInt);
-        document.querySelectorAll('[data-opt]').forEach(b=>{b.disabled=true;b.classList.add('opacity-30');});
-        document.getElementById('player-locked-msg').classList.remove('hidden');
+
+        // Visual: chosen + dim others
+        document.querySelectorAll('[data-opt]').forEach(b=>{
+            b.disabled=true;
+            if(parseInt(b.dataset.opt)===opt){b.classList.add('chosen');}
+            else{b.classList.add('dimmed');}
+        });
+
+        // Show locked overlay after short delay
+        setTimeout(()=>document.getElementById('player-locked-overlay').classList.remove('hidden'), 600);
+
         sfx('tick');
+
         const snap=await get(ref(db,`rooms/${currentPin}`));
         const room=snap.val();if(!room||room.state!=='question')return;
         const q=room.questions[room.currentQuestionIndex];
@@ -1117,10 +1485,7 @@ document.querySelectorAll('[data-opt]').forEach(btn=>{
     });
 });
 
-// ─────────────────────────────────────────────
-//  BUTTON WIRING
-// ─────────────────────────────────────────────
-// Teacher login
+// ── Button Wiring ──
 document.getElementById('btn-teacher-login').addEventListener('click',()=>{
     const v=document.getElementById('teacher-pw-input').value;
     if(v===getPW()){document.getElementById('login-error').classList.add('hidden');showScreen('host-studio-screen');renderStudio();}
@@ -1128,28 +1493,22 @@ document.getElementById('btn-teacher-login').addEventListener('click',()=>{
 });
 document.getElementById('teacher-pw-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-teacher-login').click();});
 document.getElementById('btn-toggle-pw').addEventListener('click',()=>{const i=document.getElementById('teacher-pw-input');i.type=i.type==='password'?'text':'password';});
-
-// Studio
 document.getElementById('btn-new-quiz').addEventListener('click',openAddModal);
 document.getElementById('btn-dl-template').addEventListener('click',dlTemplate);
 document.getElementById('input-csv').addEventListener('change',e=>{handleCSV(e.target.files[0]);e.target.value='';});
-document.getElementById('btn-load-sample').addEventListener('click',()=>{addQuiz('🌍 ภูมิศาสตร์ทั่วไป',[ {q:'เมืองหลวงของไทยคืออะไร?',options:['เชียงใหม่','กรุงเทพมหานคร','พัทยา','ภูเก็ต'],correct:1,timeLimit:10}, {q:'แม่น้ำที่ยาวที่สุดในโลกคือ?',options:['Amazon','Nile','Mississippi','Yangtze'],correct:1,timeLimit:15}, {q:'ทวีปใดใหญ่ที่สุดในโลก?',options:['อเมริกาเหนือ','แอฟริกา','เอเชีย','ยุโรป'],correct:2,timeLimit:15}],['ภูมิศาสตร์']);renderStudio();toast('✅ โหลดตัวอย่างแล้ว');});
+document.getElementById('btn-load-sample').addEventListener('click',()=>{addQuiz('🌍 ภูมิศาสตร์ทั่วไป',[{q:'เมืองหลวงของไทยคืออะไร?',options:['เชียงใหม่','กรุงเทพมหานคร','พัทยา','ภูเก็ต'],correct:1,timeLimit:10},{q:'แม่น้ำที่ยาวที่สุดในโลกคือ?',options:['Amazon','Nile','Mississippi','Yangtze'],correct:1,timeLimit:15},{q:'ทวีปใดใหญ่ที่สุดในโลก?',options:['อเมริกาเหนือ','แอฟริกา','เอเชีย','ยุโรป'],correct:2,timeLimit:15}],['ภูมิศาสตร์']);renderStudio();toast('✅ โหลดตัวอย่างแล้ว');});
 document.getElementById('btn-change-pw').addEventListener('click',()=>document.getElementById('modal-change-pw').classList.remove('hidden'));
-document.getElementById('btn-clear-all').addEventListener('click',()=>{if(confirm('ลบชุดข้อสอบทั้งหมดหรือไม่? ไม่สามารถกู้คืนได้')){localStorage.removeItem(LS_KEY);renderStudio();toast('🗑 ล้างคลังแล้ว');}});
+document.getElementById('btn-clear-all').addEventListener('click',()=>{if(confirm('ลบชุดข้อสอบทั้งหมดหรือไม่?')){localStorage.removeItem(LS_KEY);renderStudio();toast('🗑 ล้างคลังแล้ว');}});
 document.getElementById('btn-logout').addEventListener('click',()=>{showScreen('teacher-login-screen');document.getElementById('teacher-pw-input').value='';});
 document.getElementById('quiz-search').addEventListener('input',e=>renderStudio(e.target.value));
 
-// Drag-drop CSV
 const dz=document.getElementById('csv-drop-zone');
 dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
 dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
 dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f?.name.endsWith('.csv'))handleCSV(f);else toast('❌ ต้องเป็นไฟล์ .csv','err');});
-
-// Modal
 document.getElementById('btn-add-q-row').addEventListener('click',addQRow);
 document.getElementById('btn-save-quiz-modal').addEventListener('click',saveQuizModal);
 
-// Change password
 document.getElementById('btn-do-change-pw').addEventListener('click',()=>{
     const o=document.getElementById('old-pw').value,n=document.getElementById('new-pw').value,c=document.getElementById('confirm-pw').value;
     const m=document.getElementById('pw-change-msg');m.className='text-xs rounded-xl py-2 px-3';
@@ -1159,8 +1518,6 @@ document.getElementById('btn-do-change-pw').addEventListener('click',()=>{
     setPW(n);m.textContent='✅ เปลี่ยนรหัสผ่านสำเร็จ!';m.classList.add('bg-emerald-950/40','text-emerald-400');m.classList.remove('hidden');
     setTimeout(()=>document.getElementById('modal-change-pw').classList.add('hidden'),1400);
 });
-
-// Lobby
 document.getElementById('btn-start-game').addEventListener('click',()=>{
     initAudio();
     update(ref(db),{[`rooms/${currentPin}/state`]:'question',[`rooms/${currentPin}/currentQuestionIndex`]:0,[`rooms/${currentPin}/questionStartTime`]:Date.now()});
@@ -1168,8 +1525,6 @@ document.getElementById('btn-start-game').addEventListener('click',()=>{
 document.getElementById('btn-cancel-lobby').addEventListener('click',()=>{
     if(confirm('ปิดห้องและกลับคลังข้อสอบ?')){remove(ref(db,`rooms/${currentPin}`));stopBGM();currentPin=null;showScreen('host-studio-screen');renderStudio();}
 });
-
-// Host question
 document.getElementById('btn-skip-q').addEventListener('click',()=>{clearInterval(hostTimerInt);transLB();});
 document.getElementById('btn-next-question').addEventListener('click',async()=>{
     const snap=await get(ref(db,`rooms/${currentPin}`));const room=snap.val();if(!room)return;
@@ -1177,12 +1532,9 @@ document.getElementById('btn-next-question').addEventListener('click',async()=>{
     if(next<room.questions.length){
         const upd={};Object.keys(room.players||{}).forEach(pid=>{upd[`rooms/${currentPin}/players/${pid}/answered`]=false;upd[`rooms/${currentPin}/players/${pid}/lastAnswerCorrect`]=false;upd[`rooms/${currentPin}/players/${pid}/pointsGained`]=0;upd[`rooms/${currentPin}/players/${pid}/selectedOptionIndex`]=-1;});
         upd[`rooms/${currentPin}/state`]='question';upd[`rooms/${currentPin}/currentQuestionIndex`]=next;upd[`rooms/${currentPin}/questionStartTime`]=Date.now();
-        lastSeenState=null;lastSeenQIdx=-1;
-        update(ref(db),upd);
+        lastSeenState=null;lastSeenQIdx=-1; update(ref(db),upd);
     } else {update(ref(db),{[`rooms/${currentPin}/state`]:'ended'});}
 });
-
-// Host end screen
 document.getElementById('btn-end-back-home').addEventListener('click',()=>{showScreen('host-studio-screen');renderStudio();});
 document.getElementById('btn-replay-quiz').addEventListener('click',()=>{if(activeQuiz)launchQuiz(activeQuiz.id);});
 document.getElementById('btn-export-csv').addEventListener('click',async()=>{
@@ -1194,8 +1546,6 @@ document.getElementById('btn-export-csv').addEventListener('click',async()=>{
     const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:`mks_results_${currentPin}.csv`});a.click();
     toast('✅ Export สำเร็จ');
 });
-
-// Player join & restart
 document.getElementById('btn-join-game').addEventListener('click',joinGame);
 document.getElementById('player-pin-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('player-name-input').focus();});
 document.getElementById('player-name-input').addEventListener('keydown',e=>{if(e.key==='Enter')joinGame();});
@@ -1204,9 +1554,7 @@ document.getElementById('btn-restart-player').addEventListener('click',()=>{
     buildAvatarGrid();showScreen('player-join-screen');
 });
 
-// ─────────────────────────────────────────────
-//  INIT
-// ─────────────────────────────────────────────
+// ── Init ──
 function init(){
     buildAvatarGrid();
     const pin=new URLSearchParams(location.search).get('pin');
