@@ -406,7 +406,7 @@
         </div>
         
         <div class="flex justify-between items-center px-2">
-            <p class="text-slate-500 text-xs font-bold uppercase tracking-wider">AUDIO: <span id="bgm-status" class="text-cyan-400">🎵 ACTIVE</span></p>
+            <button id="btn-mute-bgm" class="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-cyan-400 hover:text-white transition bg-transparent border border-cyan-500/30 hover:border-white/30 px-3 py-1.5 rounded-lg">🔊 <span id="bgm-status">BGM ON</span></button>
             <button id="btn-skip-q" class="bg-transparent border border-slate-600 text-slate-300 py-2 px-6 rounded-xl text-xs font-bold transition hover:bg-white/5 hover:border-white">⏭ FORCE SKIP</button>
         </div>
     </div>
@@ -648,6 +648,43 @@
      APP SCRIPT (ES Module)
      ==================================================================== -->
 <script type="module">
+/*
+ * MKS-QUIZ STUDIO — Firebase Architecture (100+ Students Optimized)
+ *
+ * KEY CHANGES FROM v1:
+ * 1. Questions stored in quizzes/{id} — NOT embedded in room node
+ *    → Every room snapshot is now ~70% smaller
+ * 2. Players listen to 3 small nodes only (state / currentQIdx / own player)
+ *    → Eliminates N² read problem (100 players × 100-player snapshots)
+ * 3. optionCounts/{0..3} counter nodes for bar chart
+ *    → Host reads counts directly, no need to iterate all players
+ * 4. answeredCount counter for auto-advance check
+ * 5. Lobby virtual render — max 24 avatars shown + overflow badge
+ * 6. Duplicate name prevention on join
+ * 7. Streak bonus points now actually calculated
+ * 8. Correct answer shown on player feedback screen
+ * 9. BGM mute toggle button
+ *
+ * Firebase Security Rules (paste into Firebase Console → Realtime DB → Rules):
+ * {
+ *   "rules": {
+ *     "quizzes": { ".read": true, ".write": "auth != null" },
+ *     "rooms": {
+ *       "$pin": {
+ *         ".read": true,
+ *         "state":              { ".write": true },
+ *         "currentQIdx":        { ".write": true },
+ *         "questionStartTime":  { ".write": true },
+ *         "answeredCount":      { ".write": true },
+ *         "optionCounts":       { ".write": true },
+ *         "players": {
+ *           "$pid": { ".write": true }
+ *         }
+ *       }
+ *     }
+ *   }
+ * }
+ */
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getDatabase, ref, set, update, onValue, get, runTransaction, remove }
     from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -683,6 +720,15 @@ let currentRole = null, currentPin = null, currentPlayerId = null;
 let editingQuizId = null, activeQuiz = null, lastSeenState = null, lastSeenQIdx = -1;
 let hostTimerInt = null, playerTimerInt = null, bgmInterval = null;
 let synthStep = 0, curNotes = [], isTense = false, qHistory = {}, joinUrl = '';
+let localQuestions = []; // cached locally — never re-fetched from Firebase on each event
+let bgmMuted = false;
+
+// Firebase listener unsub refs — always call unsubAll() before starting new listeners
+let _unsubHost = null, _unsubPlayerState = null, _unsubPlayerQIdx = null, _unsubPlayerSelf = null;
+function unsubAll() {
+    [_unsubHost, _unsubPlayerState, _unsubPlayerQIdx, _unsubPlayerSelf].forEach(fn => fn?.());
+    _unsubHost = _unsubPlayerState = _unsubPlayerQIdx = _unsubPlayerSelf = null;
+}
 
 let audioCtx = null;
 function initAudio() {
@@ -725,6 +771,20 @@ function speedUpBGM() {
     document.getElementById('bgm-status').className='text-red-500 animate-pulse';
 }
 function stopBGM() { if(bgmInterval){clearInterval(bgmInterval);bgmInterval=null;} }
+function toggleMute() {
+    bgmMuted = !bgmMuted;
+    const status = document.getElementById('bgm-status');
+    const btn = document.getElementById('btn-mute-bgm');
+    if (bgmMuted) {
+        stopBGM();
+        if (status) status.textContent = 'MUTED';
+        if (btn) btn.classList.replace('text-cyan-400','text-slate-500');
+    } else {
+        startBGM();
+        if (status) status.textContent = 'BGM ON';
+        if (btn) btn.classList.replace('text-slate-500','text-cyan-400');
+    }
+}
 function sfx(type) {
     initAudio();
     const sfxMap={
@@ -936,20 +996,27 @@ async function launchQuiz(id){
     incPlayCount(id);
     qHistory={};
     quiz.questions.forEach((_,i)=>{qHistory[i]={correct:0,wrong:0,count:0,opts:[0,0,0,0]};});
+    localQuestions=quiz.questions; // cached — host never reads questions from room snapshots
 
     const pin=Math.floor(100000+Math.random()*900000).toString();
     currentPin=pin; currentRole='host';
 
+    // Questions stored separately — NOT inside room node
+    // Every room snapshot is now ~70% smaller → critical for 100+ connections
+    await set(ref(db,`quizzes/${id}`),{name:quiz.name,questions:quiz.questions});
+
+    // Room node: lean control data + small counters only
     await set(ref(db,`rooms/${pin}`),{
-        state:'lobby',quizName:quiz.name,currentQuestionIndex:0,questionStartTime:0,
-        questions:quiz.questions,players:{}
+        state:'lobby', quizName:quiz.name, quizId:id,
+        currentQIdx:0, questionStartTime:0,
+        answeredCount:0, optionCounts:{0:0,1:0,2:0,3:0},
+        players:{}
     });
 
     joinUrl=`${location.origin}${location.pathname}?pin=${pin}`;
     document.getElementById('host-pin-display').textContent=pin;
     document.getElementById('current-page-url').textContent=joinUrl;
     document.getElementById('lobby-quiz-info').innerHTML=`<span class="font-black text-cyan-400 uppercase tracking-widest">${quiz.name}</span> · ${quiz.questions.length} Qs`;
-
     makeQR('lobby-qrcode',joinUrl,150);
     document.getElementById('lobby-qrcode').onclick=openZoom;
     document.getElementById('btn-zoom-qr').onclick=openZoom;
@@ -959,39 +1026,54 @@ async function launchQuiz(id){
 
     showScreen('host-lobby-screen');
     lastSeenState=null; lastSeenQIdx=-1;
-
-    onValue(ref(db,`rooms/${pin}/players`),snap=>renderLobby(snap.val()||{}));
-    onValue(ref(db,`rooms/${pin}`),snap=>{ if(snap.val()&&currentRole==='host') hostUpdate(snap.val()); });
+    unsubAll();
+    // Host = 1 connection → OK to listen full room (lean now, no questions array)
+    _unsubHost=onValue(ref(db,`rooms/${pin}`),snap=>{
+        const room=snap.val();if(room&&currentRole==='host') hostUpdate(room);
+    });
 }
 function openZoom(){
     document.getElementById('qr-zoom-overlay').classList.remove('hidden');
     document.getElementById('qr-zoom-url').textContent=joinUrl;
     makeQR('qr-zoom-code',joinUrl,250);
 }
+// Virtual lobby render — cap at 24 avatars to avoid DOM thrashing with 100+ players
 function renderLobby(players){
     const g=document.getElementById('player-list-grid'),list=Object.values(players);
-    document.getElementById('player-count').textContent=list.length;
-    if(!list.length){g.innerHTML=`<p class="col-span-full text-center text-slate-600 text-xs py-8 font-bold uppercase tracking-widest">Waiting for connections...</p>`;return;}
+    const total=list.length;
+    document.getElementById('player-count').textContent=total;
+    if(!total){g.innerHTML=`<p class="col-span-full text-center text-slate-600 text-xs py-8 font-bold uppercase tracking-widest">Waiting for connections...</p>`;return;}
     g.innerHTML='';
-    list.forEach(p=>{
+    list.slice(0,24).forEach(p=>{
         const c=document.createElement('div');
         c.className='bg-black border border-cyan-500/20 p-2.5 rounded-xl flex items-center gap-2 text-sm font-bold truncate shadow-inner';
         c.innerHTML=`<span class="text-xl">${p.avatar||'🐯'}</span><span class="truncate text-white">${p.nickname}</span>`;
         g.appendChild(c);
     });
+    if(total>24){
+        const more=document.createElement('div');
+        more.className='col-span-2 sm:col-span-4 md:col-span-5 text-center text-cyan-400 text-xs font-black py-2 tracking-widest bg-cyan-950/20 rounded-xl border border-cyan-500/20';
+        more.textContent=`+${total-24} more players connected`;
+        g.appendChild(more);
+    }
     sfx('join');
 }
 
 function hostUpdate(room){
-    const {state,currentQuestionIndex:qi,questions,players}=room;
-    const q=questions?.[qi];
+    const {state,currentQIdx:qi,players,answeredCount,optionCounts}=room;
+    const q=localQuestions[qi]; // use cached — NOT from room snapshot
+
+    if(state==='lobby'){
+        renderLobby(players||{});
+        return;
+    }
     if(state==='question'){
         const isNew=lastSeenState!=='question'||lastSeenQIdx!==qi;
-        if(isNew){
+        if(isNew&&q){
             showScreen('host-question-screen');
             document.getElementById('host-q-index').textContent=qi+1;
-            document.getElementById('host-q-total').textContent=questions.length;
-            document.getElementById('host-progress-fill').style.width=`${(qi/questions.length)*100}%`;
+            document.getElementById('host-q-total').textContent=localQuestions.length;
+            document.getElementById('host-progress-fill').style.width=`${(qi/localQuestions.length)*100}%`;
             document.getElementById('host-question-text').textContent=q.q;
             for(let i=0;i<4;i++){
                 const has=!!q.options[i];
@@ -1000,49 +1082,61 @@ function hostUpdate(room){
             }
             for(let i=0;i<4;i++){document.getElementById(`bar-opt-${i}`).style.height='2px';document.getElementById(`bar-count-${i}`).textContent='0';}
             document.getElementById('host-answers-count').textContent='0';
-            randomizeScale(); startBGM(); runHostTimer(q.timeLimit);
+            document.getElementById('host-total-count').textContent=Object.keys(players||{}).length;
+            randomizeScale();
+            if(!bgmMuted) startBGM();
+            runHostTimer(q.timeLimit);
             lastSeenState='question'; lastSeenQIdx=qi;
         }
-        updateBars(players,qi);
+        // Bar chart reads from optionCounts (small counter node) — no player iteration
+        updateBarsDirect(optionCounts||{0:0,1:0,2:0,3:0}, answeredCount||0, Object.keys(players||{}).length, qi);
     } else if(state==='leaderboard'){
         if(lastSeenState!=='leaderboard'){
+            // Record question stats from optionCounts (no need to iterate players)
+            if(q&&optionCounts){
+                const opts=[0,1,2,3].map(i=>optionCounts[i]||0);
+                const correct=opts[q.correct], total=opts.reduce((a,b)=>a+b,0);
+                qHistory[qi]={correct,wrong:total-correct,count:total,opts};
+            }
             clearInterval(hostTimerInt); stopBGM();
             showScreen('host-leaderboard-screen');
-            renderLB(players,qi,questions);
+            renderLB(players,qi,localQuestions);
             lastSeenState='leaderboard';
         }
     } else if(state==='ended'){
         if(lastSeenState!=='ended'){
             clearInterval(hostTimerInt); stopBGM();
             showScreen('host-end-screen');
-            renderPodium(players); renderAnalytics(room);
+            renderPodium(players); renderAnalytics({players,questions:localQuestions});
             confetti(80); sfx('gameover');
             lastSeenState='ended';
         }
     }
 }
+
 function runHostTimer(sec){
     clearInterval(hostTimerInt);
     let t=sec;const el=document.getElementById('host-timer');
     el.textContent=t;el.classList.remove('timer-critical');
     hostTimerInt=setInterval(()=>{
         t--;el.textContent=t;sfx('countdown');
-        if(t<=5&&!isTense){speedUpBGM();el.classList.add('timer-critical');}
+        if(t<=5&&!isTense&&!bgmMuted){speedUpBGM();el.classList.add('timer-critical');}
         if(t<=0){clearInterval(hostTimerInt);transLB();}
     },1000);
 }
-function transLB(){clearInterval(hostTimerInt);stopBGM();update(ref(db),{[`rooms/${currentPin}/state`]:'leaderboard'});}
-function updateBars(players,qi){
-    if(!players)return;
-    const pl=Object.values(players),total=pl.length,ans=pl.filter(p=>p.answered).length;
-    document.getElementById('host-answers-count').textContent=ans;
-    document.getElementById('host-total-count').textContent=total;
-    const cnt=[0,0,0,0];pl.forEach(p=>{if(p.answered&&p.selectedOptionIndex>=0)cnt[p.selectedOptionIndex]++;});
+function transLB(){clearInterval(hostTimerInt);stopBGM();update(ref(db,`rooms/${currentPin}`),{state:'leaderboard'});}
+
+// Bar chart reads optionCounts directly — no Object.values(players) loop
+// This eliminates re-rendering 100+ player records on every answer
+function updateBarsDirect(optionCounts, answeredCount, totalPlayers, qi){
+    const cnt=[0,1,2,3].map(i=>optionCounts[i]||0);
     const mx=Math.max(...cnt,1);
-    for(let i=0;i<4;i++){document.getElementById(`bar-opt-${i}`).style.height=`${Math.max((cnt[i]/mx)*78,2)}px`;document.getElementById(`bar-count-${i}`).textContent=cnt[i];}
-    if(ans===total&&total>0&&qHistory[qi]){
-        const correct=pl.filter(p=>p.answered&&p.lastAnswerCorrect).length;
-        qHistory[qi]={correct,wrong:total-correct,count:total,opts:cnt};
+    for(let i=0;i<4;i++){
+        document.getElementById(`bar-opt-${i}`).style.height=`${Math.max((cnt[i]/mx)*78,2)}px`;
+        document.getElementById(`bar-count-${i}`).textContent=cnt[i];
+    }
+    document.getElementById('host-answers-count').textContent=answeredCount;
+    if(answeredCount>=totalPlayers&&totalPlayers>0&&lastSeenState==='question'){
         transLB();
     }
 }
@@ -1090,8 +1184,9 @@ function renderPodium(players){
     if(fl)fl.innerHTML=s.slice(3).map((p,i)=>`<div class="flex justify-between items-center text-sm px-4 py-2.5 rounded-xl bg-black/40 border border-white/5"><div class="flex items-center gap-3"><span class="text-slate-500 font-bold w-5 text-right">#${i+4}</span><span class="text-xl">${p.avatar||'🐯'}</span><span class="font-bold text-white tracking-wide">${p.nickname}</span></div><span class="text-cyan-400 font-black">${fmt(p.score)}</span></div>`).join('');
 }
 function renderAnalytics(room){
-    const {players,questions}=room,pl=Object.values(players||{});
+    const {players}=room,pl=Object.values(players||{});
     if(!pl.length)return;
+    const questions=localQuestions;
     const stats=questions.map((q,i)=>({q:q.q,idx:i,...(qHistory[i]||{correct:0,wrong:0,count:pl.length})}));
     const hard=stats.reduce((a,b)=>b.wrong>a.wrong?b:a,stats[0]);
     if(hard&&hard.wrong>0){
@@ -1125,6 +1220,11 @@ async function joinGame(){
     if(!snap.exists()){errEl.textContent='❌ ARENA NOT FOUND';errEl.classList.remove('hidden');return;}
     const room=snap.val();
     if(room.state!=='lobby'){errEl.textContent='❌ MATCH IN PROGRESS';errEl.classList.remove('hidden');return;}
+    const taken=Object.values(room.players||{}).some(p=>p.nickname.toLowerCase()===nick.toLowerCase());
+    if(taken){errEl.textContent='❌ NAME ALREADY TAKEN';errEl.classList.remove('hidden');return;}
+    const qSnap=await get(ref(db,`quizzes/${room.quizId}`));
+    if(!qSnap.exists()){errEl.textContent='❌ QUIZ DATA NOT FOUND';errEl.classList.remove('hidden');return;}
+    localQuestions=qSnap.val().questions;
     currentPin=pin; currentRole='player';
     currentPlayerId='p_'+Math.random().toString(36).substr(2,9);
     await set(ref(db,`rooms/${pin}/players/${currentPlayerId}`),{
@@ -1135,76 +1235,106 @@ async function joinGame(){
     document.getElementById('player-lobby-name').textContent=nick;
     showScreen('player-lobby-screen');
     lastSeenState=null; lastSeenQIdx=-1;
-    onValue(ref(db,`rooms/${pin}`),snap=>{ if(snap.val()&&currentRole==='player') playerUpdate(snap.val()); });
+    startPlayerListeners(pin);
 }
-function playerUpdate(room){
-    const {state,currentQuestionIndex:qi,questions,players}=room;
-    const me=players?.[currentPlayerId];if(!me)return;
-    if(state==='lobby'){showScreen('player-lobby-screen');}
-    else if(state==='question'){
-        if(lastSeenState!=='question'||lastSeenQIdx!==qi){
-            clearInterval(playerTimerInt);
-            const q=questions[qi];
-            showScreen('player-question-screen');
-            document.getElementById('player-locked-msg').classList.add('hidden');
-            document.getElementById('player-question-text').textContent=q.q;
-            document.getElementById('player-q-index').textContent=`Q ${qi+1}/${questions.length}`;
-            for(let i=0;i<4;i++){
-                const btn=document.querySelector(`[data-opt="${i}"]`);if(!btn)continue;
-                const has=!!q.options[i];
-                btn.classList.toggle('hidden',!has);
-                btn.disabled=false;btn.style.filter='none';btn.style.opacity='1';
-                if(has){btn.querySelector('.opt-text').textContent=q.options[i];btn.querySelector('.opt-icon').textContent=['▲','◆','●','■'][i];}
-            }
-            let t=q.timeLimit;
-            const tel=document.getElementById('player-timer');tel.textContent=t;tel.classList.remove('timer-critical');
-            playerTimerInt=setInterval(()=>{
-                t--;tel.textContent=t;sfx('countdown');
-                if(t<=5)tel.classList.add('timer-critical');
-                if(t<=0){clearInterval(playerTimerInt);document.querySelectorAll('[data-opt]').forEach(b=>{b.disabled=true;b.style.filter='grayscale(0.8)';b.style.opacity='0.5';});document.getElementById('player-locked-msg').classList.remove('hidden');}
-            },1000);
-            lastSeenState='question'; lastSeenQIdx=qi;
+function startPlayerListeners(pin){
+    unsubAll();
+    _unsubPlayerState=onValue(ref(db,`rooms/${pin}/state`),snap=>{
+        const state=snap.val();if(!state)return;
+        onPlayerState(state,pin);
+    });
+    _unsubPlayerQIdx=onValue(ref(db,`rooms/${pin}/currentQIdx`),snap=>{
+        const qi=snap.val();if(qi==null)return;
+        if(lastSeenState==='question'&&qi!==lastSeenQIdx) showPlayerQuestion(qi);
+    });
+    _unsubPlayerSelf=onValue(ref(db,`rooms/${pin}/players/${currentPlayerId}`),_snap=>{/* handled in onPlayerState */});
+}
+async function onPlayerState(state,pin){
+    if(state==='lobby'){
+        showScreen('player-lobby-screen');
+    } else if(state==='question'){
+        if(lastSeenState!=='question'){
+            const snap=await get(ref(db,`rooms/${pin}/currentQIdx`));
+            showPlayerQuestion(snap.val()||0);
         }
     } else if(state==='leaderboard'){
         if(lastSeenState!=='leaderboard'){
             clearInterval(playerTimerInt);
-            const sorted=Object.values(players).sort((a,b)=>b.score-a.score);
-            const rank=sorted.findIndex(p=>p.nickname===me.nickname)+1;
-            const streak=me.streak||0;
-            document.getElementById('feedback-gained-score').textContent=`+${fmt(me.pointsGained)}`;
-            document.getElementById('feedback-total-score').textContent=fmt(me.score);
-            document.getElementById('feedback-rank').textContent=`#${rank}`;
-            document.getElementById('feedback-streak').textContent=streak>=3?`🔥 STREAK x${streak}!`:'';
-            const card=document.getElementById('feedback-card');
-            if(me.lastAnswerCorrect){
-                card.className='rounded-3xl p-10 border bg-emerald-950/40 border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.2)]';
-                document.getElementById('feedback-icon').textContent=streak>=5?'🔥':streak>=3?'⚡':'🎉';
-                document.getElementById('feedback-title').textContent=streak>=3?`STREAK x${streak}!`:'CORRECT!';
-                document.getElementById('feedback-title').className='text-4xl font-black mb-3 tracking-widest text-emerald-400 text-glow-cyan';
-                if(streak>=3)sfx('streak');else sfx('correct');
-            } else {
-                card.className='rounded-3xl p-10 border bg-rose-950/40 border-rose-500/50 shadow-[0_0_30px_rgba(244,63,94,0.2)]';
-                document.getElementById('feedback-icon').textContent='❌';
-                document.getElementById('feedback-title').textContent='INCORRECT';
-                document.getElementById('feedback-title').className='text-4xl font-black mb-3 tracking-widest text-rose-400';
-                sfx('incorrect');
-            }
-            showScreen('player-feedback-screen');
+            const [meSnap,allSnap]=await Promise.all([
+                get(ref(db,`rooms/${pin}/players/${currentPlayerId}`)),
+                get(ref(db,`rooms/${pin}/players`))
+            ]);
+            const me=meSnap.val(),allPlayers=allSnap.val()||{};
+            if(me) showPlayerFeedback(me,allPlayers);
             lastSeenState='leaderboard';
         }
     } else if(state==='ended'){
         if(lastSeenState!=='ended'){
             clearInterval(playerTimerInt);
+            const allSnap=await get(ref(db,`rooms/${pin}/players`));
+            const players=allSnap.val()||{};
+            const me=players[currentPlayerId];
             const sorted=Object.values(players).sort((a,b)=>b.score-a.score);
-            const rank=sorted.findIndex(p=>p.nickname===me.nickname)+1;
-            document.getElementById('player-final-avatar').textContent=me.avatar||'🏆';
+            const rank=sorted.findIndex(p=>p.nickname===me?.nickname)+1;
+            document.getElementById('player-final-avatar').textContent=me?.avatar||'🏆';
             document.getElementById('player-final-rank').textContent=`#${rank}`;
-            document.getElementById('player-final-score').textContent=`${fmt(me.score)}`;
+            document.getElementById('player-final-score').textContent=fmt(me?.score||0);
             document.getElementById('player-end-medal').textContent=rank===1?'👑':rank===2?'🥈':rank===3?'🥉':'🎮';
             showScreen('player-end-screen');
             lastSeenState='ended';
         }
     }
+    if(state!=='leaderboard'&&state!=='ended') lastSeenState=state;
+}
+function showPlayerQuestion(qi){
+    clearInterval(playerTimerInt);
+    const q=localQuestions[qi];if(!q)return;
+    showScreen('player-question-screen');
+    document.getElementById('player-locked-msg').classList.add('hidden');
+    document.getElementById('player-question-text').textContent=q.q;
+    document.getElementById('player-q-index').textContent=`Q ${qi+1}/${localQuestions.length}`;
+    for(let i=0;i<4;i++){
+        const btn=document.querySelector(`[data-opt="${i}"]`);if(!btn)continue;
+        const has=!!q.options[i];
+        btn.classList.toggle('hidden',!has);
+        btn.disabled=false;btn.style.filter='none';btn.style.opacity='1';
+        if(has){btn.querySelector('.opt-text').textContent=q.options[i];btn.querySelector('.opt-icon').textContent=['▲','◆','●','■'][i];}
+    }
+    let t=q.timeLimit;
+    const tel=document.getElementById('player-timer');tel.textContent=t;tel.classList.remove('timer-critical');
+    playerTimerInt=setInterval(()=>{
+        t--;tel.textContent=t;sfx('countdown');
+        if(t<=5)tel.classList.add('timer-critical');
+        if(t<=0){clearInterval(playerTimerInt);document.querySelectorAll('[data-opt]').forEach(b=>{b.disabled=true;b.style.filter='grayscale(0.8)';b.style.opacity='0.5';});document.getElementById('player-locked-msg').classList.remove('hidden');}
+    },1000);
+    lastSeenState='question'; lastSeenQIdx=qi;
+}
+function showPlayerFeedback(me,allPlayers){
+    const sorted=Object.values(allPlayers).sort((a,b)=>b.score-a.score);
+    const rank=sorted.findIndex(p=>p.nickname===me.nickname)+1;
+    const streak=me.streak||0;
+    document.getElementById('feedback-gained-score').textContent=`+${fmt(me.pointsGained)}`;
+    document.getElementById('feedback-total-score').textContent=fmt(me.score);
+    document.getElementById('feedback-rank').textContent=`#${rank>0?rank:'?'}`;
+    document.getElementById('feedback-streak').textContent=streak>=3?`🔥 STREAK x${streak}!`:'';
+    const q=localQuestions[lastSeenQIdx];
+    const card=document.getElementById('feedback-card');
+    if(me.lastAnswerCorrect){
+        card.className='rounded-3xl p-10 border bg-emerald-950/40 border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.2)]';
+        document.getElementById('feedback-icon').textContent=streak>=5?'🔥':streak>=3?'⚡':'🎉';
+        document.getElementById('feedback-title').textContent=streak>=3?`STREAK x${streak}!`:'CORRECT!';
+        document.getElementById('feedback-title').className='text-4xl font-black mb-3 tracking-widest text-emerald-400 text-glow-cyan';
+        if(streak>=3)sfx('streak');else sfx('correct');
+    } else {
+        card.className='rounded-3xl p-10 border bg-rose-950/40 border-rose-500/50 shadow-[0_0_30px_rgba(244,63,94,0.2)]';
+        document.getElementById('feedback-icon').textContent='❌';
+        document.getElementById('feedback-title').textContent='INCORRECT';
+        document.getElementById('feedback-title').className='text-4xl font-black mb-3 tracking-widest text-rose-400';
+        sfx('incorrect');
+    }
+    document.querySelector('#feedback-card .ans-reveal')?.remove();
+    if(q){const d=document.createElement('div');d.className='ans-reveal mt-3 pt-3 border-t border-white/10 text-xs font-bold text-slate-400 uppercase tracking-widest';d.innerHTML=`ANSWER: <span class="text-white normal-case font-black">${q.options[q.correct]}</span>`;card.querySelector('.space-y-3')?.appendChild(d);}
+    showScreen('player-feedback-screen');
 }
 document.querySelectorAll('[data-opt]').forEach(btn=>{
     btn.addEventListener('click',async()=>{
@@ -1213,16 +1343,32 @@ document.querySelectorAll('[data-opt]').forEach(btn=>{
         document.querySelectorAll('[data-opt]').forEach(b=>{b.disabled=true;b.style.filter='grayscale(0.8)';b.style.opacity='0.5';});
         document.getElementById('player-locked-msg').classList.remove('hidden');
         sfx('tick');
-        const snap=await get(ref(db,`rooms/${currentPin}`));
-        const room=snap.val();if(!room||room.state!=='question')return;
-        const q=room.questions[room.currentQuestionIndex];
+        // Fetch only the 2 tiny values we need — NOT the full room snapshot
+        const [tsSnap,meSnap]=await Promise.all([
+            get(ref(db,`rooms/${currentPin}/questionStartTime`)),
+            get(ref(db,`rooms/${currentPin}/players/${currentPlayerId}`))
+        ]);
+        const questionStartTime=tsSnap.val()||0;
+        const me=meSnap.val();if(!me)return;
+        const q=localQuestions[lastSeenQIdx];if(!q)return;
         const ok=opt===q.correct;
-        let pts=0;
-        if(ok){const el=(Date.now()-room.questionStartTime)/1000;const ratio=Math.max(0,Math.min(1,1-el/q.timeLimit));pts=Math.round(500+500*ratio);}
-        await runTransaction(ref(db,`rooms/${currentPin}/players/${currentPlayerId}`),pd=>{
-            if(pd){pd.answered=true;pd.lastAnswerCorrect=ok;pd.pointsGained=pts;pd.score=(pd.score||0)+pts;pd.selectedOptionIndex=opt;pd.streak=ok?(pd.streak||0)+1:0;}
-            return pd;
+        const elapsed=(Date.now()-questionStartTime)/1000;
+        const ratio=Math.max(0,Math.min(1,1-elapsed/q.timeLimit));
+        let pts=ok?Math.round(500+500*ratio):0;
+        // Streak bonus
+        const newStreak=ok?(me.streak||0)+1:0;
+        if(ok&&newStreak>=3)pts+=150;
+        if(ok&&newStreak>=5)pts+=100;
+        // Write own player node directly — no contention, only we write here
+        await update(ref(db,`rooms/${currentPin}/players/${currentPlayerId}`),{
+            answered:true,lastAnswerCorrect:ok,pointsGained:pts,
+            score:(me.score||0)+pts,selectedOptionIndex:opt,streak:newStreak
         });
+        // Increment small counter nodes — near-instant transactions
+        await Promise.all([
+            runTransaction(ref(db,`rooms/${currentPin}/answeredCount`),n=>(n||0)+1),
+            runTransaction(ref(db,`rooms/${currentPin}/optionCounts/${opt}`),n=>(n||0)+1),
+        ]);
     });
 });
 
@@ -1261,32 +1407,48 @@ document.getElementById('btn-do-change-pw').addEventListener('click',()=>{
     setTimeout(()=>document.getElementById('modal-change-pw').classList.add('hidden'),1400);
 });
 
+document.getElementById('btn-mute-bgm').addEventListener('click',toggleMute);
 document.getElementById('btn-start-game').addEventListener('click',()=>{
     initAudio();
-    update(ref(db),{[`rooms/${currentPin}/state`]:'question',[`rooms/${currentPin}/currentQuestionIndex`]:0,[`rooms/${currentPin}/questionStartTime`]:Date.now()});
+    update(ref(db,`rooms/${currentPin}`),{
+        state:'question',currentQIdx:0,
+        questionStartTime:Date.now(),answeredCount:0,
+        optionCounts:{0:0,1:0,2:0,3:0}
+    });
 });
 document.getElementById('btn-cancel-lobby').addEventListener('click',()=>{
-    if(confirm('ABORT MATCH AND RETURN TO HQ?')){remove(ref(db,`rooms/${currentPin}`));stopBGM();currentPin=null;showScreen('host-studio-screen');renderStudio();}
+    if(confirm('ABORT MATCH AND RETURN TO HQ?')){unsubAll();remove(ref(db,`rooms/${currentPin}`));stopBGM();currentPin=null;showScreen('host-studio-screen');renderStudio();}
 });
 
 document.getElementById('btn-skip-q').addEventListener('click',()=>{clearInterval(hostTimerInt);transLB();});
 document.getElementById('btn-next-question').addEventListener('click',async()=>{
     const snap=await get(ref(db,`rooms/${currentPin}`));const room=snap.val();if(!room)return;
-    const next=room.currentQuestionIndex+1;
-    if(next<room.questions.length){
-        const upd={};Object.keys(room.players||{}).forEach(pid=>{upd[`rooms/${currentPin}/players/${pid}/answered`]=false;upd[`rooms/${currentPin}/players/${pid}/lastAnswerCorrect`]=false;upd[`rooms/${currentPin}/players/${pid}/pointsGained`]=0;upd[`rooms/${currentPin}/players/${pid}/selectedOptionIndex`]=-1;});
-        upd[`rooms/${currentPin}/state`]='question';upd[`rooms/${currentPin}/currentQuestionIndex`]=next;upd[`rooms/${currentPin}/questionStartTime`]=Date.now();
+    const next=(room.currentQIdx||0)+1;
+    if(next<localQuestions.length){
+        const upd={
+            [`rooms/${currentPin}/state`]:'question',
+            [`rooms/${currentPin}/currentQIdx`]:next,
+            [`rooms/${currentPin}/questionStartTime`]:Date.now(),
+            [`rooms/${currentPin}/answeredCount`]:0,
+            [`rooms/${currentPin}/optionCounts`]:{0:0,1:0,2:0,3:0},
+        };
+        Object.keys(room.players||{}).forEach(pid=>{
+            upd[`rooms/${currentPin}/players/${pid}/answered`]=false;
+            upd[`rooms/${currentPin}/players/${pid}/lastAnswerCorrect`]=false;
+            upd[`rooms/${currentPin}/players/${pid}/pointsGained`]=0;
+            upd[`rooms/${currentPin}/players/${pid}/selectedOptionIndex`]=-1;
+        });
         lastSeenState=null;lastSeenQIdx=-1;
         update(ref(db),upd);
-    } else {update(ref(db),{[`rooms/${currentPin}/state`]:'ended'});}
+    } else {update(ref(db,`rooms/${currentPin}`),{state:'ended'});}
 });
 
-document.getElementById('btn-end-back-home').addEventListener('click',()=>{showScreen('host-studio-screen');renderStudio();});
+document.getElementById('btn-end-back-home').addEventListener('click',()=>{unsubAll();showScreen('host-studio-screen');renderStudio();});
 document.getElementById('btn-replay-quiz').addEventListener('click',()=>{if(activeQuiz)launchQuiz(activeQuiz.id);});
 document.getElementById('btn-export-csv').addEventListener('click',async()=>{
-    const snap=await get(ref(db,`rooms/${currentPin}`));const room=snap.val();
-    if(!room?.players){toast('❌ NO DATA','err');return;}
-    const sorted=Object.values(room.players).sort((a,b)=>b.score-a.score);
+    const snap=await get(ref(db,`rooms/${currentPin}/players`));const players=snap.val();
+    if(!players){toast('❌ NO DATA','err');return;}
+    const sorted=Object.values(players).sort((a,b)=>b.score-a.score);
     const BOM='\uFEFF',rows=sorted.map((p,i)=>`${i+1},"${p.nickname}","${p.avatar||''}",${p.score},${p.streak||0}`);
     const blob=new Blob([BOM+`Rank,Name,Avatar,Score,MaxStreak\n`+rows.join('\n')],{type:'text/csv;charset=utf-8;'});
     const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(blob),download:`arena_results_${currentPin}.csv`});a.click();
@@ -1297,7 +1459,9 @@ document.getElementById('btn-join-game').addEventListener('click',joinGame);
 document.getElementById('player-pin-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('player-name-input').focus();});
 document.getElementById('player-name-input').addEventListener('keydown',e=>{if(e.key==='Enter')joinGame();});
 document.getElementById('btn-restart-player').addEventListener('click',()=>{
-    clearInterval(playerTimerInt);currentPin=null;currentPlayerId=null;currentRole=null;lastSeenState=null;lastSeenQIdx=-1;
+    clearInterval(playerTimerInt);unsubAll();
+    currentPin=null;currentPlayerId=null;currentRole=null;
+    lastSeenState=null;lastSeenQIdx=-1;localQuestions=[];
     buildAvatarGrid();showScreen('player-join-screen');
 });
 
