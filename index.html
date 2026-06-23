@@ -560,7 +560,7 @@
         <div id="player-end-medal"  class="text-[4rem] block mb-2 relative z-10 drop-shadow-xl">🏆</div>
         <div id="player-final-avatar" class="text-[5rem] block mb-4 relative z-10 drop-shadow-lg">😊</div>
         <h2 class="text-3xl font-black mb-6 text-white tracking-widest relative z-10">GAME OVER</h2>
-        
+
         <div class="bg-black/60 rounded-2xl border border-white/10 p-6 space-y-5 mb-8 relative z-10 shadow-inner">
             <div>
                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">FINAL RANK</p>
@@ -572,8 +572,87 @@
                 <p id="player-final-score" class="text-2xl font-black text-cyan-300">0</p>
             </div>
         </div>
-        
+
         <button id="btn-restart-player" class="btn-primary w-full py-4 rounded-xl text-lg relative z-10">NEW GAME 🔄</button>
+    </div>
+</div>
+
+<!-- ====================================================================
+     SCREEN 11 · Player Eliminated (Survival Mode)
+     ==================================================================== -->
+<div id="player-eliminated-screen" class="screen hidden w-full max-w-md text-center">
+    <div class="glass rounded-3xl p-10 border-red-500/40 shadow-[0_0_40px_rgba(255,0,60,0.25)] relative overflow-hidden">
+        <div class="absolute inset-0 bg-red-950/20"></div>
+        <div class="text-[5rem] mb-4 relative z-10 drop-shadow-lg">💀</div>
+        <h2 class="text-4xl font-black mb-2 tracking-widest text-red-400 relative z-10">ELIMINATED</h2>
+        <p class="text-slate-400 text-sm font-bold uppercase tracking-widest mb-6 relative z-10">You answered incorrectly</p>
+        <div class="bg-black/60 rounded-2xl border border-red-900/40 p-5 mb-8 relative z-10">
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">ELIMINATED AT RANK</p>
+            <p id="elim-rank" class="text-5xl font-black text-red-400">#-</p>
+            <div class="h-px w-full bg-white/10 my-3"></div>
+            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">TOTAL SCORE</p>
+            <p id="elim-score" class="text-xl font-black text-cyan-300">0</p>
+        </div>
+        <p class="text-slate-500 text-xs font-bold uppercase tracking-widest relative z-10">Watching remaining survivors...</p>
+    </div>
+</div>
+
+<!-- ====================================================================
+     MODAL · Game Mode Selection (shown before launchQuiz)
+     ==================================================================== -->
+<div id="modal-game-mode" class="modal-overlay hidden">
+    <div class="modal-box max-w-lg">
+        <h3 class="text-2xl font-black text-white mb-2 tracking-widest text-center">⚙️ GAME SETUP</h3>
+        <p id="modal-game-quiz-name" class="text-cyan-400 font-black text-center text-sm mb-6 uppercase tracking-widest"></p>
+
+        <!-- Game Mode -->
+        <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">SELECT GAME MODE</p>
+        <div class="grid grid-cols-1 gap-2 mb-6" id="mode-selector">
+            <button data-mode="classic" class="mode-btn selected-mode flex items-center gap-3 p-4 rounded-xl border-2 border-cyan-500 bg-cyan-950/30 text-left transition">
+                <span class="text-2xl">🎯</span>
+                <div><p class="font-black text-white">CLASSIC</p><p class="text-xs text-slate-400">ทุกคนตอบ · คะแนนรายบุคคล</p></div>
+            </button>
+            <button data-mode="team" class="mode-btn flex items-center gap-3 p-4 rounded-xl border border-white/10 bg-black/40 text-left transition hover:border-purple-500/50">
+                <span class="text-2xl">🛡️</span>
+                <div><p class="font-black text-white">TEAM BATTLE</p><p class="text-xs text-slate-400">แบ่งทีม · คะแนนรวมของทีม</p></div>
+            </button>
+            <button data-mode="survival" class="mode-btn flex items-center gap-3 p-4 rounded-xl border border-white/10 bg-black/40 text-left transition hover:border-red-500/50">
+                <span class="text-2xl">💀</span>
+                <div><p class="font-black text-white">SURVIVAL</p><p class="text-xs text-slate-400">ตอบผิด = ออก · คนสุดท้ายชนะ</p></div>
+            </button>
+        </div>
+
+        <!-- Team setup (shown only when team mode selected) -->
+        <div id="team-setup-section" class="hidden mb-6">
+            <p class="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">NUMBER OF TEAMS</p>
+            <div class="flex gap-2 mb-4">
+                <button data-teams="2" class="team-count-btn selected-teams flex-1 py-3 rounded-xl border-2 border-purple-500 bg-purple-950/30 font-black text-white text-center transition">2</button>
+                <button data-teams="3" class="team-count-btn flex-1 py-3 rounded-xl border border-white/10 bg-black/40 font-black text-white text-center transition hover:border-purple-400">3</button>
+                <button data-teams="4" class="team-count-btn flex-1 py-3 rounded-xl border border-white/10 bg-black/40 font-black text-white text-center transition hover:border-purple-400">4</button>
+                <button data-teams="5" class="team-count-btn flex-1 py-3 rounded-xl border border-white/10 bg-black/40 font-black text-white text-center transition hover:border-purple-400">5</button>
+                <button data-teams="6" class="team-count-btn flex-1 py-3 rounded-xl border border-white/10 bg-black/40 font-black text-white text-center transition hover:border-purple-400">6</button>
+            </div>
+            <div id="team-preview" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <!-- Shuffle toggle -->
+        <div class="flex items-center justify-between bg-black/40 rounded-xl border border-white/10 p-4 mb-6">
+            <div class="flex items-center gap-3">
+                <span class="text-xl">🔀</span>
+                <div>
+                    <p class="font-black text-white text-sm">SHUFFLE QUESTIONS</p>
+                    <p class="text-xs text-slate-400">สลับลำดับคำถามแบบสุ่ม</p>
+                </div>
+            </div>
+            <button id="btn-shuffle-toggle" class="w-12 h-6 rounded-full bg-slate-700 relative transition-all duration-200 border border-white/10">
+                <span id="shuffle-knob" class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-slate-400 transition-all duration-200"></span>
+            </button>
+        </div>
+
+        <div class="flex gap-3">
+            <button id="btn-cancel-mode-modal" class="flex-1 py-3 rounded-xl border border-slate-700 text-slate-300 font-bold hover:border-red-500 hover:text-red-400 transition">CANCEL</button>
+            <button id="btn-confirm-launch" class="flex-1 btn-success py-3 rounded-xl text-lg font-black tracking-wider">LAUNCH 🚀</button>
+        </div>
     </div>
 </div>
 
@@ -722,6 +801,21 @@ let hostTimerInt = null, playerTimerInt = null, bgmInterval = null;
 let synthStep = 0, curNotes = [], isTense = false, qHistory = {}, joinUrl = '';
 let localQuestions = []; // cached locally — never re-fetched from Firebase on each event
 let bgmMuted = false;
+
+// Phase 1 — Game Mode state
+let pendingLaunchId = null;   // quiz id waiting for mode modal confirmation
+let gameMode = 'classic';     // 'classic' | 'survival' | 'team'
+let shuffleEnabled = false;
+let teamCount = 2;
+const TEAM_DEFS = [
+    {id:'t1',name:'🔴 RED',   color:'#ef4444'},
+    {id:'t2',name:'🔵 BLUE',  color:'#3b82f6'},
+    {id:'t3',name:'🟢 GREEN', color:'#22c55e'},
+    {id:'t4',name:'🟡 GOLD',  color:'#eab308'},
+    {id:'t5',name:'🟣 PURPLE',color:'#a855f7'},
+    {id:'t6',name:'🟠 ORANGE',color:'#f97316'},
+];
+function shuffleArr(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
 
 // Firebase listener unsub refs — always call unsubAll() before starting new listeners
 let _unsubHost = null, _unsubPlayerState = null, _unsubPlayerQIdx = null, _unsubPlayerSelf = null;
@@ -886,7 +980,7 @@ function renderStudio(filterTerm=''){
         cont.appendChild(el);
     });
     cont.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>openEditModal(b.dataset.edit)));
-    cont.querySelectorAll('[data-launch]').forEach(b=>b.addEventListener('click',()=>launchQuiz(b.dataset.launch)));
+    cont.querySelectorAll('[data-launch]').forEach(b=>b.addEventListener('click',()=>openGameModeModal(b.dataset.launch)));
     cont.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{
         const q=getQuizzes().find(x=>x.id===b.dataset.del);
         if(q&&confirm(`DELETE "${q.name}"?`)){deleteQuiz(b.dataset.del);renderStudio();toast('🗑 DELETED');}
@@ -989,27 +1083,111 @@ function dlTemplate(){
     const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([BOM+h+rows],{type:'text/csv;charset=utf-8;'})),download:'mks_template.csv'});a.click();
 }
 
+// ── GAME MODE MODAL ────────────────────────────────────────────
+function openGameModeModal(id){
+    const quiz=getQuizzes().find(q=>q.id===id);if(!quiz)return;
+    pendingLaunchId=id;
+    document.getElementById('modal-game-quiz-name').textContent=quiz.name+' · '+quiz.questions.length+' Qs';
+    // Reset state
+    gameMode='classic'; shuffleEnabled=false; teamCount=2;
+    setModeUI('classic');
+    setShuffleUI(false);
+    setTeamCountUI(2);
+    document.getElementById('team-setup-section').classList.add('hidden');
+    document.getElementById('modal-game-mode').classList.remove('hidden');
+}
+function setModeUI(mode){
+    document.querySelectorAll('.mode-btn').forEach(b=>{
+        const sel=b.dataset.mode===mode;
+        b.classList.toggle('selected-mode',sel);
+        b.classList.toggle('border-2',sel);
+        b.classList.toggle('border-cyan-500',sel&&mode==='classic');
+        b.classList.toggle('border-purple-500',sel&&mode==='team');
+        b.classList.toggle('border-red-500',sel&&mode==='survival');
+        b.classList.toggle('bg-cyan-950/30',sel&&mode==='classic');
+        b.classList.toggle('bg-purple-950/30',sel&&mode==='team');
+        b.classList.toggle('bg-red-950/30',sel&&mode==='survival');
+        b.classList.toggle('border-white/10',!sel);
+        b.classList.toggle('bg-black/40',!sel);
+    });
+}
+function setShuffleUI(on){
+    const knob=document.getElementById('shuffle-knob');
+    const btn=document.getElementById('btn-shuffle-toggle');
+    btn.classList.toggle('bg-cyan-600',on);
+    btn.classList.toggle('bg-slate-700',!on);
+    knob.classList.toggle('left-6',on);
+    knob.classList.toggle('left-0.5',!on);
+    knob.classList.toggle('bg-white',on);
+    knob.classList.toggle('bg-slate-400',!on);
+}
+function setTeamCountUI(n){
+    teamCount=n;
+    document.querySelectorAll('.team-count-btn').forEach(b=>{
+        const sel=parseInt(b.dataset.teams)===n;
+        b.classList.toggle('border-2',sel);
+        b.classList.toggle('border-purple-500',sel);
+        b.classList.toggle('bg-purple-950/30',sel);
+        b.classList.toggle('border-white/10',!sel);
+        b.classList.toggle('bg-black/40',!sel);
+    });
+    const preview=document.getElementById('team-preview');
+    preview.innerHTML=TEAM_DEFS.slice(0,n).map(t=>`<span class="text-xs font-black px-3 py-1 rounded-full border" style="color:${t.color};border-color:${t.color}40;background:${t.color}15">${t.name}</span>`).join('');
+}
+document.getElementById('btn-cancel-mode-modal').addEventListener('click',()=>{
+    document.getElementById('modal-game-mode').classList.add('hidden');
+    pendingLaunchId=null;
+});
+document.querySelectorAll('.mode-btn').forEach(b=>b.addEventListener('click',()=>{
+    gameMode=b.dataset.mode;
+    setModeUI(gameMode);
+    document.getElementById('team-setup-section').classList.toggle('hidden',gameMode!=='team');
+}));
+document.getElementById('btn-shuffle-toggle').addEventListener('click',()=>{
+    shuffleEnabled=!shuffleEnabled;
+    setShuffleUI(shuffleEnabled);
+});
+document.querySelectorAll('.team-count-btn').forEach(b=>b.addEventListener('click',()=>setTeamCountUI(parseInt(b.dataset.teams))));
+document.getElementById('btn-confirm-launch').addEventListener('click',()=>{
+    document.getElementById('modal-game-mode').classList.add('hidden');
+    if(pendingLaunchId) launchQuiz(pendingLaunchId);
+});
+// Also wire btn-replay-quiz via modal
+document.getElementById('btn-replay-quiz').addEventListener('click',()=>{
+    if(activeQuiz) openGameModeModal(activeQuiz.id);
+});
+
 async function launchQuiz(id){
     const quiz=getQuizzes().find(q=>q.id===id);if(!quiz)return;
     initAudio();
     activeQuiz=quiz;
     incPlayCount(id);
     qHistory={};
+
+    // Apply shuffle before caching
+    const questions=shuffleEnabled?shuffleArr([...quiz.questions]):[...quiz.questions];
     quiz.questions.forEach((_,i)=>{qHistory[i]={correct:0,wrong:0,count:0,opts:[0,0,0,0]};});
-    localQuestions=quiz.questions; // cached — host never reads questions from room snapshots
+    localQuestions=questions;
 
     const pin=Math.floor(100000+Math.random()*900000).toString();
     currentPin=pin; currentRole='host';
 
     // Questions stored separately — NOT inside room node
-    // Every room snapshot is now ~70% smaller → critical for 100+ connections
-    await set(ref(db,`quizzes/${id}`),{name:quiz.name,questions:quiz.questions});
+    await set(ref(db,`quizzes/${id}`),{name:quiz.name,questions});
+
+    // Build teams node if team mode
+    const teams={};
+    if(gameMode==='team'){
+        TEAM_DEFS.slice(0,teamCount).forEach(t=>{teams[t.id]={name:t.name,color:t.color};});
+    }
 
     // Room node: lean control data + small counters only
     await set(ref(db,`rooms/${pin}`),{
         state:'lobby', quizName:quiz.name, quizId:id,
+        gameMode, shuffled:shuffleEnabled,
         currentQIdx:0, questionStartTime:0,
         answeredCount:0, optionCounts:{0:0,1:0,2:0,3:0},
+        ...(gameMode==='team'?{teams}:{}),
         players:{}
     });
 
@@ -1038,16 +1216,35 @@ function openZoom(){
     makeQR('qr-zoom-code',joinUrl,250);
 }
 // Virtual lobby render — cap at 24 avatars to avoid DOM thrashing with 100+ players
-function renderLobby(players){
+function renderLobby(players, room){
     const g=document.getElementById('player-list-grid'),list=Object.values(players);
     const total=list.length;
     document.getElementById('player-count').textContent=total;
+
+    // Mode badge
+    let modeBadgeEl=document.getElementById('lobby-mode-badge');
+    if(!modeBadgeEl){
+        modeBadgeEl=document.createElement('span');
+        modeBadgeEl.id='lobby-mode-badge';
+        modeBadgeEl.className='text-xs font-black px-3 py-1 rounded-full border ml-2 uppercase tracking-widest';
+        document.getElementById('player-count').parentElement.appendChild(modeBadgeEl);
+    }
+    const modeLabel={classic:'🎯 CLASSIC',survival:'💀 SURVIVAL',team:'🛡️ TEAM'}[room?.gameMode||'classic'];
+    const modeColor={classic:'text-cyan-400 border-cyan-500/40 bg-cyan-950/20',survival:'text-red-400 border-red-500/40 bg-red-950/20',team:'text-purple-400 border-purple-500/40 bg-purple-950/20'}[room?.gameMode||'classic'];
+    modeBadgeEl.textContent=modeLabel;
+    modeBadgeEl.className=`text-xs font-black px-3 py-1 rounded-full border ml-2 uppercase tracking-widest ${modeColor}`;
+
     if(!total){g.innerHTML=`<p class="col-span-full text-center text-slate-600 text-xs py-8 font-bold uppercase tracking-widest">Waiting for connections...</p>`;return;}
     g.innerHTML='';
+    const teams=room?.teams||{};
     list.slice(0,24).forEach(p=>{
         const c=document.createElement('div');
-        c.className='bg-black border border-cyan-500/20 p-2.5 rounded-xl flex items-center gap-2 text-sm font-bold truncate shadow-inner';
-        c.innerHTML=`<span class="text-xl">${p.avatar||'🐯'}</span><span class="truncate text-white">${p.nickname}</span>`;
+        const teamColor=p.teamId&&teams[p.teamId]?teams[p.teamId].color:'';
+        const eliminated=p.eliminated;
+        c.className='bg-black border p-2.5 rounded-xl flex items-center gap-2 text-sm font-bold truncate shadow-inner transition';
+        c.style.borderColor=eliminated?'rgba(239,68,68,0.3)':teamColor?teamColor+'40':'rgba(0,243,255,0.2)';
+        c.style.opacity=eliminated?'0.4':'1';
+        c.innerHTML=`<span class="text-xl">${eliminated?'💀':p.avatar||'🐯'}</span><span class="truncate ${eliminated?'text-slate-500 line-through':'text-white'}">${p.nickname}</span>${p.teamId&&teams[p.teamId]?`<span class="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded" style="color:${teams[p.teamId].color};background:${teams[p.teamId].color}20">${teams[p.teamId].name.split(' ')[0]}</span>`:''}`;
         g.appendChild(c);
     });
     if(total>24){
@@ -1060,11 +1257,13 @@ function renderLobby(players){
 }
 
 function hostUpdate(room){
-    const {state,currentQIdx:qi,players,answeredCount,optionCounts}=room;
-    const q=localQuestions[qi]; // use cached — NOT from room snapshot
+    const {state,currentQIdx:qi,players,answeredCount,optionCounts,gameMode:gm,teams}=room;
+    const q=localQuestions[qi];
+    const allPlayers=Object.values(players||{});
+    const activePlayers=gm==='survival'?allPlayers.filter(p=>!p.eliminated):allPlayers;
 
     if(state==='lobby'){
-        renderLobby(players||{});
+        renderLobby(players||{},room);
         return;
     }
     if(state==='question'){
@@ -1082,32 +1281,47 @@ function hostUpdate(room){
             }
             for(let i=0;i<4;i++){document.getElementById(`bar-opt-${i}`).style.height='2px';document.getElementById(`bar-count-${i}`).textContent='0';}
             document.getElementById('host-answers-count').textContent='0';
-            document.getElementById('host-total-count').textContent=Object.keys(players||{}).length;
+            document.getElementById('host-total-count').textContent=activePlayers.length;
+            // Survival mode: show alive counter
+            let aliveEl=document.getElementById('host-alive-counter');
+            if(gm==='survival'){
+                if(!aliveEl){
+                    aliveEl=document.createElement('div');
+                    aliveEl.id='host-alive-counter';
+                    aliveEl.className='text-xs font-black text-red-400 uppercase tracking-widest text-center mb-2';
+                    document.getElementById('host-answers-count').closest('.flex')?.before(aliveEl);
+                }
+                aliveEl.textContent=`💀 ALIVE: ${activePlayers.length} / ${allPlayers.length}`;
+            } else if(aliveEl){aliveEl.remove();}
             randomizeScale();
             if(!bgmMuted) startBGM();
             runHostTimer(q.timeLimit);
             lastSeenState='question'; lastSeenQIdx=qi;
         }
-        // Bar chart reads from optionCounts (small counter node) — no player iteration
-        updateBarsDirect(optionCounts||{0:0,1:0,2:0,3:0}, answeredCount||0, Object.keys(players||{}).length, qi);
+        // Bar chart — use activePlayers count for auto-advance
+        updateBarsDirect(optionCounts||{0:0,1:0,2:0,3:0}, answeredCount||0, activePlayers.length, qi);
     } else if(state==='leaderboard'){
         if(lastSeenState!=='leaderboard'){
-            // Record question stats from optionCounts (no need to iterate players)
             if(q&&optionCounts){
                 const opts=[0,1,2,3].map(i=>optionCounts[i]||0);
                 const correct=opts[q.correct], total=opts.reduce((a,b)=>a+b,0);
                 qHistory[qi]={correct,wrong:total-correct,count:total,opts};
             }
             clearInterval(hostTimerInt); stopBGM();
+            // Survival: end game if ≤1 alive
+            if(gm==='survival'&&activePlayers.length<=1){
+                update(ref(db,`rooms/${currentPin}`),{state:'ended'});
+                return;
+            }
             showScreen('host-leaderboard-screen');
-            renderLB(players,qi,localQuestions);
+            renderLB(players,qi,localQuestions,gm,teams);
             lastSeenState='leaderboard';
         }
     } else if(state==='ended'){
         if(lastSeenState!=='ended'){
             clearInterval(hostTimerInt); stopBGM();
             showScreen('host-end-screen');
-            renderPodium(players); renderAnalytics({players,questions:localQuestions});
+            renderPodium(players,gm,teams); renderAnalytics({players,questions:localQuestions});
             confetti(80); sfx('gameover');
             lastSeenState='ended';
         }
@@ -1140,18 +1354,43 @@ function updateBarsDirect(optionCounts, answeredCount, totalPlayers, qi){
         transLB();
     }
 }
-function renderLB(players,qi,questions){
+function calcTeamScores(players,teams){
+    const scores={};
+    Object.values(teams||{}).forEach(t=>{scores[t.id||t.name]=0;});
+    Object.values(players||{}).forEach(p=>{if(p.teamId)scores[p.teamId]=(scores[p.teamId]||0)+(p.score||0);});
+    return scores;
+}
+function renderLB(players,qi,questions,gm,teams){
     const cont=document.getElementById('host-leaderboard-list');
     if(!players){cont.innerHTML='';return;}
+    cont.innerHTML='';
+
+    // Team mode: show team scoreboard on top
+    if(gm==='team'&&teams){
+        const teamScores=calcTeamScores(players,teams);
+        const teamsSorted=Object.entries(teams).sort((a,b)=>(teamScores[b[0]]||0)-(teamScores[a[0]]||0));
+        const teamHeader=document.createElement('div');
+        teamHeader.className='mb-3 grid gap-2';
+        teamHeader.style.gridTemplateColumns=`repeat(${Math.min(teamsSorted.length,3)},1fr)`;
+        teamHeader.innerHTML=teamsSorted.map(([tid,t],i)=>`<div class="rounded-xl p-3 text-center border" style="border-color:${t.color}40;background:${t.color}15"><p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:${t.color}">${['🥇','🥈','🥉'][i]||`#${i+1}`} ${t.name}</p><p class="text-2xl font-black text-white">${fmt(teamScores[tid]||0)}</p></div>`).join('');
+        cont.appendChild(teamHeader);
+        const divider=document.createElement('p');
+        divider.className='text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 mt-1';
+        divider.textContent='INDIVIDUAL';
+        cont.appendChild(divider);
+    }
+
     const sorted=Object.values(players).sort((a,b)=>b.score-a.score).slice(0,10);
     const medals=['🥇','🥈','🥉'];
-    cont.innerHTML='';
     sorted.forEach((p,i)=>{
         const d=document.createElement('div');
-        d.className='flex justify-between items-center bg-black/60 border border-white/5 px-4 py-3 rounded-xl shadow-inner';
+        const teamColor=p.teamId&&teams?.[p.teamId]?.color||'':'';
+        d.className='flex justify-between items-center bg-black/60 border border-white/5 px-4 py-3 rounded-xl shadow-inner mb-1';
+        if(teamColor) d.style.borderLeftColor=teamColor,d.style.borderLeftWidth='3px';
+        if(p.eliminated) d.style.opacity='0.4';
         d.innerHTML=`
             <div class="flex items-center gap-4">
-                <span class="text-2xl w-8 text-center drop-shadow-md">${medals[i]||`<span class="text-base text-slate-500 font-bold">#${i+1}</span>`}</span>
+                <span class="text-2xl w-8 text-center drop-shadow-md">${p.eliminated?'💀':medals[i]||`<span class="text-base text-slate-500 font-bold">#${i+1}</span>`}</span>
                 <span class="text-3xl">${p.avatar||'🐯'}</span>
                 <div>
                     <p class="font-black text-white text-lg leading-none tracking-wide">${p.nickname}</p>
@@ -1159,7 +1398,7 @@ function renderLB(players,qi,questions){
                 </div>
             </div>
             <div class="flex items-center gap-3">
-                ${p.lastAnswerCorrect?'<span class="tag-correct">✓ RIGHT</span>':'<span class="tag-wrong">✗ WRONG</span>'}
+                ${p.eliminated?'<span class="tag-wrong">💀 OUT</span>':p.lastAnswerCorrect?'<span class="tag-correct">✓ RIGHT</span>':'<span class="tag-wrong">✗ WRONG</span>'}
                 <span class="text-cyan-300 font-black text-2xl tabular-nums text-glow-cyan">${fmt(p.score)}</span>
             </div>`;
         cont.appendChild(d);
@@ -1171,17 +1410,33 @@ function renderLB(players,qi,questions){
         rev.innerHTML=`<p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">CORRECT ANSWER</p><p class="text-lg font-black ${cols[q.correct]} tracking-wide">${['▲','◆','●','■'][q.correct]} ${q.options[q.correct]}</p>`;
     }
 }
-function renderPodium(players){
+function renderPodium(players,gm,teams){
     if(!players)return;
     const s=Object.values(players).sort((a,b)=>b.score-a.score);
-    [1,2,3].forEach(r=>{
-        const p=s[r-1];
-        document.getElementById(`podium-${r}-avatar`).textContent=p?.avatar||'';
-        document.getElementById(`podium-${r}-name`).textContent=p?.nickname||'-';
-        document.getElementById(`podium-${r}-score`).textContent=p?`${fmt(p.score)} PTS`:'-';
-    });
-    const fl=document.getElementById('full-ranking-list');
-    if(fl)fl.innerHTML=s.slice(3).map((p,i)=>`<div class="flex justify-between items-center text-sm px-4 py-2.5 rounded-xl bg-black/40 border border-white/5"><div class="flex items-center gap-3"><span class="text-slate-500 font-bold w-5 text-right">#${i+4}</span><span class="text-xl">${p.avatar||'🐯'}</span><span class="font-bold text-white tracking-wide">${p.nickname}</span></div><span class="text-cyan-400 font-black">${fmt(p.score)}</span></div>`).join('');
+
+    if(gm==='team'&&teams){
+        // Show team podium instead
+        const teamScores=calcTeamScores(players,teams);
+        const teamsSorted=Object.entries(teams).sort((a,b)=>(teamScores[b[0]]||0)-(teamScores[a[0]]||0));
+        [1,2,3].forEach(r=>{
+            const [,t]=teamsSorted[r-1]||[,null];
+            const tid=teamsSorted[r-1]?.[0];
+            document.getElementById(`podium-${r}-avatar`).textContent=t?t.name.split(' ')[0]:'';
+            document.getElementById(`podium-${r}-name`).textContent=t?t.name:'-';
+            document.getElementById(`podium-${r}-score`).textContent=t?`${fmt(teamScores[tid]||0)} PTS`:'-';
+        });
+        const fl=document.getElementById('full-ranking-list');
+        if(fl)fl.innerHTML=teamsSorted.slice(3).map(([tid,t],i)=>`<div class="flex justify-between items-center text-sm px-4 py-2.5 rounded-xl bg-black/40 border border-white/5"><div class="flex items-center gap-3"><span class="text-slate-500 font-bold w-5 text-right">#${i+4}</span><span class="font-bold text-white tracking-wide">${t.name}</span></div><span class="text-cyan-400 font-black">${fmt(teamScores[tid]||0)}</span></div>`).join('');
+    } else {
+        [1,2,3].forEach(r=>{
+            const p=s[r-1];
+            document.getElementById(`podium-${r}-avatar`).textContent=p?.avatar||'';
+            document.getElementById(`podium-${r}-name`).textContent=p?.nickname||'-';
+            document.getElementById(`podium-${r}-score`).textContent=p?`${fmt(p.score)} PTS`:'-';
+        });
+        const fl=document.getElementById('full-ranking-list');
+        if(fl)fl.innerHTML=s.slice(3).map((p,i)=>`<div class="flex justify-between items-center text-sm px-4 py-2.5 rounded-xl bg-black/40 border border-white/5"><div class="flex items-center gap-3"><span class="text-slate-500 font-bold w-5 text-right">#${i+4}</span><span class="text-xl">${p.avatar||'🐯'}</span><span class="font-bold text-white tracking-wide">${p.nickname}</span></div><span class="text-cyan-400 font-black">${fmt(p.score)}</span></div>`).join('');
+    }
 }
 function renderAnalytics(room){
     const {players}=room,pl=Object.values(players||{});
@@ -1227,9 +1482,20 @@ async function joinGame(){
     localQuestions=qSnap.val().questions;
     currentPin=pin; currentRole='player';
     currentPlayerId='p_'+Math.random().toString(36).substr(2,9);
+
+    // Auto-assign team (round-robin) if team mode
+    let teamId=null;
+    if(room.gameMode==='team'&&room.teams){
+        const teamIds=Object.keys(room.teams);
+        const playerCount=Object.keys(room.players||{}).length;
+        teamId=teamIds[playerCount%teamIds.length];
+    }
+
     await set(ref(db,`rooms/${pin}/players/${currentPlayerId}`),{
         nickname:nick,avatar:AVATARS[avatarIdx],score:0,streak:0,
-        answered:false,lastAnswerCorrect:false,pointsGained:0,selectedOptionIndex:-1
+        answered:false,lastAnswerCorrect:false,pointsGained:0,selectedOptionIndex:-1,
+        eliminated:false,
+        ...(teamId?{teamId}:{})
     });
     document.getElementById('player-lobby-avatar').textContent=AVATARS[avatarIdx];
     document.getElementById('player-lobby-name').textContent=nick;
@@ -1247,9 +1513,21 @@ function startPlayerListeners(pin){
         const qi=snap.val();if(qi==null)return;
         if(lastSeenState==='question'&&qi!==lastSeenQIdx) showPlayerQuestion(qi);
     });
-    _unsubPlayerSelf=onValue(ref(db,`rooms/${pin}/players/${currentPlayerId}`),_snap=>{/* handled in onPlayerState */});
+    // Watch own node for elimination in survival mode
+    _unsubPlayerSelf=onValue(ref(db,`rooms/${pin}/players/${currentPlayerId}`),snap=>{
+        const me=snap.val();
+        if(me?.eliminated&&lastSeenState==='question'){
+            clearInterval(playerTimerInt);
+            showEliminatedScreen(me,pin);
+        }
+    });
 }
 async function onPlayerState(state,pin){
+    // If already eliminated, skip question/leaderboard transitions
+    const meSnap=await get(ref(db,`rooms/${pin}/players/${currentPlayerId}`));
+    const meNow=meSnap.val();
+    if(meNow?.eliminated&&(state==='question'||state==='leaderboard')) return;
+
     if(state==='lobby'){
         showScreen('player-lobby-screen');
     } else if(state==='question'){
@@ -1260,11 +1538,11 @@ async function onPlayerState(state,pin){
     } else if(state==='leaderboard'){
         if(lastSeenState!=='leaderboard'){
             clearInterval(playerTimerInt);
-            const [meSnap,allSnap]=await Promise.all([
+            const [meSnap2,allSnap]=await Promise.all([
                 get(ref(db,`rooms/${pin}/players/${currentPlayerId}`)),
                 get(ref(db,`rooms/${pin}/players`))
             ]);
-            const me=meSnap.val(),allPlayers=allSnap.val()||{};
+            const me=meSnap2.val(),allPlayers=allSnap.val()||{};
             if(me) showPlayerFeedback(me,allPlayers);
             lastSeenState='leaderboard';
         }
@@ -1285,6 +1563,17 @@ async function onPlayerState(state,pin){
         }
     }
     if(state!=='leaderboard'&&state!=='ended') lastSeenState=state;
+}
+async function showEliminatedScreen(me,pin){
+    const allSnap=await get(ref(db,`rooms/${pin}/players`));
+    const players=allSnap.val()||{};
+    const sorted=Object.values(players).sort((a,b)=>b.score-a.score);
+    const rank=sorted.findIndex(p=>p.nickname===me.nickname)+1;
+    document.getElementById('elim-rank').textContent=`#${rank}`;
+    document.getElementById('elim-score').textContent=fmt(me.score||0);
+    showScreen('player-eliminated-screen');
+    lastSeenState='eliminated';
+    sfx('incorrect');
 }
 function showPlayerQuestion(qi){
     clearInterval(playerTimerInt);
@@ -1359,10 +1648,16 @@ document.querySelectorAll('[data-opt]').forEach(btn=>{
         const newStreak=ok?(me.streak||0)+1:0;
         if(ok&&newStreak>=3)pts+=150;
         if(ok&&newStreak>=5)pts+=100;
+        // Survival mode: mark eliminated if wrong
+        const gameModeSnap=await get(ref(db,`rooms/${currentPin}/gameMode`));
+        const gm=gameModeSnap.val()||'classic';
+        const eliminated=gm==='survival'&&!ok;
+
         // Write own player node directly — no contention, only we write here
         await update(ref(db,`rooms/${currentPin}/players/${currentPlayerId}`),{
             answered:true,lastAnswerCorrect:ok,pointsGained:pts,
-            score:(me.score||0)+pts,selectedOptionIndex:opt,streak:newStreak
+            score:(me.score||0)+pts,selectedOptionIndex:opt,streak:newStreak,
+            ...(eliminated?{eliminated:true}:{})
         });
         // Increment small counter nodes — near-instant transactions
         await Promise.all([
@@ -1444,7 +1739,7 @@ document.getElementById('btn-next-question').addEventListener('click',async()=>{
 });
 
 document.getElementById('btn-end-back-home').addEventListener('click',()=>{unsubAll();showScreen('host-studio-screen');renderStudio();});
-document.getElementById('btn-replay-quiz').addEventListener('click',()=>{if(activeQuiz)launchQuiz(activeQuiz.id);});
+// btn-replay-quiz wired above in openGameModeModal block
 document.getElementById('btn-export-csv').addEventListener('click',async()=>{
     const snap=await get(ref(db,`rooms/${currentPin}/players`));const players=snap.val();
     if(!players){toast('❌ NO DATA','err');return;}
