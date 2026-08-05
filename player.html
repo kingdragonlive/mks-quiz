@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>QuizArena — เข้าร่วมเกม</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700;800&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#150E2B;
+    --bg-panel:#1F1642;
+    --coral:#FF5F4E; --coral-d:#B8341F;
+    --teal:#00CBA5; --teal-d:#00846A;
+    --amber:#FFC53D; --amber-d:#B8850B;
+    --violet:#9B6BFF; --violet-d:#5A32B8;
+    --text-light:#F5F1FF;
+    --text-muted:#B8AEDC;
+    --success:#4ADE80;
+    --danger:#FF4D6D;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:radial-gradient(circle at 50% 0%, #241a4a 0%, var(--bg-deep) 60%);
+    color:var(--text-light);
+    font-family:'IBM Plex Sans Thai',sans-serif;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:100vh;padding:20px;
+  }
+  h1,.display{font-family:'Kanit',sans-serif;font-weight:700;}
+  .screen{width:100%;max-width:440px;display:none;flex-direction:column;align-items:center;gap:18px;}
+  .screen.active{display:flex;}
+
+  input{
+    width:100%;padding:16px 18px;border-radius:14px;border:1px solid #3a2d6b;
+    background:var(--bg-panel);color:var(--text-light);font-size:20px;text-align:center;
+    font-family:'Kanit',sans-serif;letter-spacing:.04em;
+  }
+  input::placeholder{color:var(--text-muted);font-family:'IBM Plex Sans Thai',sans-serif;}
+  .btn{
+    width:100%;font-family:'Kanit',sans-serif;font-weight:600;font-size:19px;border:none;cursor:pointer;
+    padding:16px;border-radius:16px;color:#150E2B;background:var(--amber);
+    box-shadow:0 6px 0 var(--amber-d);transition:transform .08s;
+  }
+  .btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--amber-d);}
+  .btn:disabled{opacity:.4;}
+  #joinError{color:var(--danger);font-size:14px;min-height:18px;}
+
+  /* waiting */
+  .pulse-dot{width:14px;height:14px;border-radius:50%;background:var(--teal);animation:pulse 1.2s infinite ease-in-out;}
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.6);opacity:.4;}}
+  .center-text{color:var(--text-muted);text-align:center;font-size:15px;}
+  .name-pill{background:var(--bg-panel);padding:8px 20px;border-radius:999px;font-weight:600;}
+
+  /* answering */
+  #answerGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;height:min(70vh,480px);}
+  .ans-btn{
+    border:none;border-radius:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+    transition:transform .1s;
+  }
+  .ans-btn:active{transform:scale(.94);}
+  .ans-btn svg{width:44px;height:44px;}
+  .ans-btn.c0{background:linear-gradient(135deg,var(--coral),var(--coral-d));}
+  .ans-btn.c1{background:linear-gradient(135deg,var(--teal),var(--teal-d));}
+  .ans-btn.c2{background:linear-gradient(135deg,var(--amber),var(--amber-d));}
+  .ans-btn.c3{background:linear-gradient(135deg,var(--violet),var(--violet-d));}
+  .ans-btn.dim{opacity:.25;pointer-events:none;}
+  .ans-btn.picked{outline:4px solid #fff;}
+
+  /* feedback */
+  #feedback{display:flex;flex-direction:column;align-items:center;gap:8px;}
+  #feedback .icon{font-family:'Kanit',sans-serif;font-weight:800;font-size:56px;}
+  #feedback.correct .icon{color:var(--success);}
+  #feedback.wrong .icon{color:var(--danger);}
+  #feedback .pts{color:var(--text-muted);font-size:16px;}
+  #feedback .rank{color:var(--text-muted);font-size:15px;}
+
+  /* final */
+  #finalRank{font-family:'Kanit',sans-serif;font-weight:800;font-size:72px;color:var(--amber);}
+  #finalScore{color:var(--text-muted);font-size:18px;}
+</style>
+</head>
+<body>
+
+<!-- JOIN -->
+<section id="join" class="screen active">
+  <h1 class="display" style="font-size:32px;color:var(--amber)">QuizArena</h1>
+  <input id="pinInput" placeholder="รหัสห้อง 6 หลัก" maxlength="6" inputmode="numeric">
+  <input id="nameInput" placeholder="ชื่อเล่นของคุณ" maxlength="18">
+  <button class="btn" id="joinBtn">เข้าร่วม</button>
+  <div id="joinError"></div>
+</section>
+
+<!-- WAITING -->
+<section id="waiting" class="screen">
+  <div class="pulse-dot"></div>
+  <div class="name-pill" id="waitingName"></div>
+  <p class="center-text">รอครูเริ่มเกม...</p>
+</section>
+
+<!-- ANSWERING -->
+<section id="answering" class="screen">
+  <p class="center-text" id="qLabel">เลือกคำตอบของคุณ</p>
+  <div id="answerGrid"></div>
+</section>
+
+<!-- LOCKED (answered, waiting for reveal) -->
+<section id="locked" class="screen">
+  <div class="pulse-dot" style="background:var(--amber)"></div>
+  <p class="center-text">ส่งคำตอบแล้ว รอผลลัพธ์...</p>
+</section>
+
+<!-- FEEDBACK -->
+<section id="feedback" class="screen">
+  <div class="icon" id="fbIcon"></div>
+  <div class="pts" id="fbPts"></div>
+  <div class="rank" id="fbTotal"></div>
+</section>
+
+<!-- FINAL -->
+<section id="final" class="screen">
+  <p class="center-text">อันดับของคุณ</p>
+  <div id="finalRank">-</div>
+  <div id="finalScore"></div>
+</section>
+
+<script type="module">
+import { firebaseConfig } from './firebase-config.js';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getDatabase, ref, set, update, onValue, get, push
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const SHAPES = {
+  0: `<svg viewBox="0 0 24 24"><polygon points="12,3 22,20 2,20" fill="#fff"/></svg>`,
+  1: `<svg viewBox="0 0 24 24"><polygon points="12,2 22,12 12,22 2,12" fill="#fff"/></svg>`,
+  2: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#fff"/></svg>`,
+  3: `<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3" fill="#fff"/></svg>`
+};
+
+let roomPin, playerId, lastSeenIndex = -1;
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+document.getElementById('joinBtn').onclick = async () => {
+  const pin = document.getElementById('pinInput').value.trim();
+  const name = document.getElementById('nameInput').value.trim();
+  const errEl = document.getElementById('joinError');
+  errEl.textContent = '';
+  if(!/^\d{6}$/.test(pin)){ errEl.textContent = 'กรุณาใส่รหัสห้อง 6 หลัก'; return; }
+  if(!name){ errEl.textContent = 'กรุณาใส่ชื่อเล่น'; return; }
+
+  const roomSnap = await get(ref(db, `rooms/${pin}`));
+  if(!roomSnap.exists()){ errEl.textContent = 'ไม่พบห้องนี้ ตรวจสอบรหัสอีกครั้ง'; return; }
+  if(roomSnap.val().status !== 'lobby'){ errEl.textContent = 'เกมเริ่มไปแล้ว เข้าร่วมไม่ได้'; return; }
+
+  roomPin = pin;
+  const newRef = push(ref(db, `rooms/${roomPin}/players`));
+  playerId = newRef.key;
+  await set(newRef, { name, score: 0 });
+  localStorage.setItem('quizarena_pid', playerId);
+  localStorage.setItem('quizarena_pin', roomPin);
+
+  document.getElementById('waitingName').textContent = name;
+  showScreen('waiting');
+  listenRoom();
+};
+
+function listenRoom(){
+  onValue(ref(db, `rooms/${roomPin}`), snap => {
+    const room = snap.val();
+    if(!room) return;
+    if(room.status === 'lobby'){
+      showScreen('waiting');
+    } else if(room.status === 'question'){
+      if(room.currentIndex !== lastSeenIndex){
+        lastSeenIndex = room.currentIndex;
+        renderAnswerScreen(room.questions[room.currentIndex]);
+      }
+    } else if(room.status === 'reveal'){
+      showFeedback(room);
+    } else if(room.status === 'leaderboard'){
+      // stay on feedback or show waiting for next
+      if(document.getElementById('feedback').classList.contains('active')) return;
+      showScreen('locked');
+      document.querySelector('#locked p').textContent = 'รอข้อถัดไป...';
+    } else if(room.status === 'ended'){
+      showFinal(room);
+    }
+  });
+}
+
+function renderAnswerScreen(q){
+  document.getElementById('qLabel').textContent = 'เลือกคำตอบของคุณ';
+  const grid = document.getElementById('answerGrid');
+  grid.innerHTML = q.choices.map((c,i) =>
+    `<button class="ans-btn c${i}" data-i="${i}">${SHAPES[i]}</button>`).join('');
+  grid.querySelectorAll('.ans-btn').forEach(btn => {
+    btn.onclick = () => submitAnswer(parseInt(btn.dataset.i));
+  });
+  showScreen('answering');
+}
+
+async function submitAnswer(choiceIndex){
+  document.querySelectorAll('.ans-btn').forEach(b => b.classList.add('dim'));
+  document.querySelector(`.ans-btn[data-i="${choiceIndex}"]`).classList.remove('dim');
+  document.querySelector(`.ans-btn[data-i="${choiceIndex}"]`).classList.add('picked');
+  await set(ref(db, `rooms/${roomPin}/answers/${lastSeenIndex}/${playerId}`), {
+    choiceIndex, answeredAt: Date.now()
+  });
+  setTimeout(() => showScreen('locked'), 500);
+}
+
+async function showFeedback(room){
+  const myAnswerSnap = await get(ref(db, `rooms/${roomPin}/answers/${lastSeenIndex}/${playerId}`));
+  const myAnswer = myAnswerSnap.val();
+  const q = room.questions[lastSeenIndex];
+  const correct = myAnswer && myAnswer.choiceIndex === q.correctIndex;
+
+  const fb = document.getElementById('feedback');
+  fb.classList.remove('correct','wrong');
+  fb.classList.add(correct ? 'correct' : 'wrong');
+  document.getElementById('fbIcon').textContent = correct ? 'ถูกต้อง!' : (myAnswer ? 'ยังไม่ถูก' : 'หมดเวลา');
+
+  const playerSnap = await get(ref(db, `rooms/${roomPin}/players/${playerId}`));
+  const p = playerSnap.val() || {};
+  document.getElementById('fbPts').textContent = correct ? `+${p.lastPoints || 0} คะแนน` : '+0 คะแนน';
+  document.getElementById('fbTotal').textContent = `คะแนนรวม ${p.score || 0}`;
+  showScreen('feedback');
+}
+
+async function showFinal(room){
+  const players = room.players || {};
+  const sorted = Object.entries(players).sort((a,b) => (b[1].score||0) - (a[1].score||0));
+  const myRank = sorted.findIndex(([id]) => id === playerId) + 1;
+  const myScore = (players[playerId] && players[playerId].score) || 0;
+  document.getElementById('finalRank').textContent = `#${myRank}`;
+  document.getElementById('finalScore').textContent = `คะแนนรวม ${myScore}`;
+  showScreen('final');
+}
+</script>
+</body>
+</html>
