@@ -1,0 +1,10 @@
+{
+  "rules": {
+    "rooms": {
+      "$roomPin": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}
