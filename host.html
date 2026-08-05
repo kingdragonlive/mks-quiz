@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuizArena — จอโฮสต์</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700;800&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#150E2B;
+    --bg-panel:#1F1642;
+    --bg-panel-2:#291C56;
+    --coral:#FF5F4E;
+    --coral-d:#B8341F;
+    --teal:#00CBA5;
+    --teal-d:#00846A;
+    --amber:#FFC53D;
+    --amber-d:#B8850B;
+    --violet:#9B6BFF;
+    --violet-d:#5A32B8;
+    --text-light:#F5F1FF;
+    --text-muted:#B8AEDC;
+    --success:#4ADE80;
+    --danger:#FF4D6D;
+    --radius-lg:24px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:radial-gradient(circle at 50% 0%, #241a4a 0%, var(--bg-deep) 60%);
+    color:var(--text-light);
+    font-family:'IBM Plex Sans Thai',sans-serif;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    overflow-x:hidden;
+  }
+  h1,h2,h3,.display{font-family:'Kanit',sans-serif;font-weight:700;}
+  .screen{width:100%;max-width:1100px;padding:32px 24px;display:none;flex-direction:column;align-items:center;gap:24px;}
+  .screen.active{display:flex;}
+
+  /* ---- Setup ---- */
+  #setup input, #setup textarea{
+    width:100%;max-width:480px;padding:14px 18px;border-radius:14px;border:1px solid #3a2d6b;
+    background:var(--bg-panel);color:var(--text-light);font-size:16px;font-family:inherit;
+  }
+  #setup textarea{min-height:140px;font-family:monospace;font-size:13px;}
+  .btn{
+    font-family:'Kanit',sans-serif;font-weight:600;font-size:18px;border:none;cursor:pointer;
+    padding:16px 36px;border-radius:16px;color:#150E2B;background:var(--amber);
+    box-shadow:0 6px 0 var(--amber-d);transition:transform .08s;
+  }
+  .btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--amber-d);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn-ghost{background:transparent;color:var(--text-light);box-shadow:none;border:1px solid #3a2d6b;}
+
+  /* ---- Lobby ---- */
+  #lobby .pin-box{
+    background:var(--bg-panel);border-radius:var(--radius-lg);padding:28px 56px;text-align:center;
+    border:1px solid #3a2d6b;
+  }
+  #lobby .pin-label{color:var(--text-muted);font-size:15px;letter-spacing:.05em;}
+  #lobby .pin-value{font-family:'Kanit',sans-serif;font-weight:800;font-size:64px;letter-spacing:.08em;color:var(--amber);}
+  #lobby .join-hint{color:var(--text-muted);font-size:15px;margin-top:4px;}
+  #playerGrid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:900px;min-height:56px;}
+  .player-chip{
+    background:var(--bg-panel-2);padding:10px 18px;border-radius:999px;font-size:15px;font-weight:500;
+    animation:pop .3s ease;border:1px solid #4a3a8f;
+  }
+  @keyframes pop{from{transform:scale(.5);opacity:0;}to{transform:scale(1);opacity:1;}}
+  #playerCount{color:var(--text-muted);font-size:16px;}
+
+  /* ---- Question ---- */
+  #qHeader{display:flex;align-items:center;justify-content:space-between;width:100%;max-width:960px;}
+  #qCounter{color:var(--text-muted);font-size:16px;font-family:'Kanit',sans-serif;}
+  .ring-wrap{position:relative;width:88px;height:88px;flex-shrink:0;}
+  .ring-wrap svg{transform:rotate(-90deg);}
+  .ring-bg{fill:none;stroke:#3a2d6b;stroke-width:8;}
+  .ring-fg{fill:none;stroke:var(--teal);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset 1s linear, stroke .3s;}
+  .ring-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Kanit',sans-serif;font-weight:700;font-size:28px;}
+
+  #qText{
+    font-family:'Kanit',sans-serif;font-weight:600;font-size:clamp(24px,4vw,40px);text-align:center;
+    max-width:900px;line-height:1.35;
+  }
+  #answeredBar{color:var(--text-muted);font-size:15px;}
+
+  .choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;max-width:900px;}
+  .choice{
+    display:flex;align-items:center;gap:16px;padding:22px 26px;border-radius:18px;
+    font-family:'Kanit',sans-serif;font-weight:600;font-size:20px;color:#fff;position:relative;
+    min-height:76px;transition:transform .2s, opacity .3s;
+  }
+  .choice .shape{width:30px;height:30px;flex-shrink:0;}
+  .choice.c0{background:linear-gradient(135deg,var(--coral),var(--coral-d));}
+  .choice.c1{background:linear-gradient(135deg,var(--teal),var(--teal-d));}
+  .choice.c2{background:linear-gradient(135deg,var(--amber),var(--amber-d));}
+  .choice.c3{background:linear-gradient(135deg,var(--violet),var(--violet-d));}
+  .choice.correct{outline:4px solid var(--success);transform:scale(1.03);}
+  .choice.wrong{opacity:.35;}
+  .choice .pct{margin-left:auto;font-size:16px;color:rgba(255,255,255,.85);}
+
+  /* ---- Leaderboard ---- */
+  #board{width:100%;max-width:640px;display:flex;flex-direction:column;gap:10px;}
+  .row{
+    display:flex;align-items:center;gap:14px;background:var(--bg-panel);border-radius:14px;
+    padding:14px 20px;border:1px solid #3a2d6b;transition:transform .5s ease;
+  }
+  .row .rank{font-family:'Kanit',sans-serif;font-weight:700;width:28px;color:var(--amber);}
+  .row .name{flex:1;font-weight:500;}
+  .row .score{font-family:'Kanit',sans-serif;font-weight:700;color:var(--teal);}
+
+  /* ---- Podium ---- */
+  #podium{display:flex;align-items:flex-end;gap:16px;}
+  .pod{border-radius:16px 16px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:16px;color:#150E2B;}
+  .pod .pname{font-family:'Kanit',sans-serif;font-weight:700;margin-bottom:6px;text-align:center;max-width:140px;}
+  .pod.gold{background:var(--amber);width:180px;height:220px;order:2;}
+  .pod.silver{background:#D7D3E8;width:160px;height:170px;order:1;}
+  .pod.bronze{background:#E3A97A;width:160px;height:130px;order:3;}
+
+  .center-text{color:var(--text-muted);font-size:16px;text-align:center;}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<section id="setup" class="screen active">
+  <h1 class="display" style="font-size:36px;color:var(--amber)">QuizArena</h1>
+  <p class="center-text">วางชุดคำถาม (JSON) หรือใช้ชุดตัวอย่างที่ให้มาเพื่อเริ่มเกม</p>
+  <textarea id="questionsInput"></textarea>
+  <button class="btn" id="createRoomBtn">สร้างห้องเกม</button>
+  <p class="center-text" id="setupError" style="color:var(--danger)"></p>
+</section>
+
+<!-- LOBBY -->
+<section id="lobby" class="screen">
+  <div class="pin-box">
+    <div class="pin-label">รหัสเข้าห้อง</div>
+    <div class="pin-value" id="pinDisplay">------</div>
+    <div class="join-hint">ผู้เล่นเข้าที่ player.html แล้วใส่รหัสนี้</div>
+  </div>
+  <div id="playerCount">รอผู้เล่นเข้าร่วม...</div>
+  <div id="playerGrid"></div>
+  <button class="btn" id="startBtn" disabled>เริ่มเกม</button>
+</section>
+
+<!-- QUESTION -->
+<section id="question" class="screen">
+  <div id="qHeader">
+    <div id="qCounter">ข้อ 1 / 5</div>
+    <div class="ring-wrap">
+      <svg width="88" height="88" viewBox="0 0 88 88">
+        <circle class="ring-bg" cx="44" cy="44" r="38"></circle>
+        <circle class="ring-fg" id="ringFg" cx="44" cy="44" r="38" stroke-dasharray="239" stroke-dashoffset="0"></circle>
+      </svg>
+      <div class="ring-num" id="ringNum">20</div>
+    </div>
+  </div>
+  <div id="qText">คำถาม</div>
+  <div id="answeredBar">ตอบแล้ว 0 / 0 คน</div>
+  <div class="choice-grid" id="choiceGrid"></div>
+</section>
+
+<!-- LEADERBOARD -->
+<section id="leaderboard" class="screen">
+  <h2 class="display" style="color:var(--teal)">คะแนนรวม</h2>
+  <div id="board"></div>
+  <button class="btn" id="nextBtn">ข้อถัดไป</button>
+</section>
+
+<!-- END -->
+<section id="ended" class="screen">
+  <h2 class="display" style="color:var(--amber);font-size:32px">จบเกม!</h2>
+  <div id="podium"></div>
+  <button class="btn btn-ghost" onclick="location.reload()">สร้างห้องใหม่</button>
+</section>
+
+<script type="module">
+import { firebaseConfig } from './firebase-config.js';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getDatabase, ref, set, update, onValue, push, get, remove, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const SAMPLE_QUESTIONS = [
+  { text: "เมืองหลวงของประเทศไทยคือที่ใด", choices: ["เชียงใหม่","กรุงเทพมหานคร","ภูเก็ต","นครราชสีมา"], correctIndex: 1, timeLimit: 20 },
+  { text: "1 + 1 x 2 มีค่าเท่าใด", choices: ["4","3","2","6"], correctIndex: 1, timeLimit: 15 },
+  { text: "ดาวเคราะห์ดวงใดอยู่ใกล้ดวงอาทิตย์ที่สุด", choices: ["ศุกร์","อังคาร","พุธ","โลก"], correctIndex: 2, timeLimit: 20 },
+  { text: "แม่น้ำสายใดยาวที่สุดในโลก", choices: ["แม่น้ำโขง","แม่น้ำไนล์","แม่น้ำเจ้าพระยา","แม่น้ำเซน"], correctIndex: 1, timeLimit: 20 },
+  { text: "รัชกาลปัจจุบันของไทยคือรัชกาลที่เท่าใด", choices: ["8","9","10","11"], correctIndex: 2, timeLimit: 15 }
+];
+document.getElementById('questionsInput').value = JSON.stringify(SAMPLE_QUESTIONS, null, 2);
+
+const SHAPES = {
+  0: `<svg class="shape" viewBox="0 0 24 24"><polygon points="12,3 22,20 2,20" fill="#fff"/></svg>`,
+  1: `<svg class="shape" viewBox="0 0 24 24"><polygon points="12,2 22,12 12,22 2,12" fill="#fff"/></svg>`,
+  2: `<svg class="shape" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#fff"/></svg>`,
+  3: `<svg class="shape" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3" fill="#fff"/></svg>`
+};
+
+let roomPin, questions, currentIndex, timerInterval, playersCache = {};
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function genPin(){ return String(Math.floor(100000 + Math.random()*900000)); }
+
+document.getElementById('createRoomBtn').onclick = async () => {
+  const errEl = document.getElementById('setupError');
+  errEl.textContent = '';
+  try{
+    questions = JSON.parse(document.getElementById('questionsInput').value);
+    if(!Array.isArray(questions) || questions.length === 0) throw new Error('empty');
+  }catch(e){
+    errEl.textContent = 'รูปแบบ JSON ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง';
+    return;
+  }
+  roomPin = genPin();
+  currentIndex = -1;
+  await set(ref(db, `rooms/${roomPin}`), {
+    status: 'lobby',
+    createdAt: serverTimestamp(),
+    questions,
+    players: {}
+  });
+  document.getElementById('pinDisplay').textContent = roomPin;
+  showScreen('lobby');
+  listenPlayers();
+};
+
+function listenPlayers(){
+  onValue(ref(db, `rooms/${roomPin}/players`), snap => {
+    const players = snap.val() || {};
+    playersCache = players;
+    const ids = Object.keys(players);
+    document.getElementById('playerCount').textContent = `ผู้เล่นเข้าร่วมแล้ว ${ids.length} คน`;
+    document.getElementById('playerGrid').innerHTML = ids.map(id =>
+      `<div class="player-chip">${escapeHtml(players[id].name)}</div>`).join('');
+    document.getElementById('startBtn').disabled = ids.length === 0;
+  });
+}
+
+document.getElementById('startBtn').onclick = () => nextQuestion();
+
+document.getElementById('nextBtn').onclick = () => nextQuestion();
+
+async function nextQuestion(){
+  currentIndex++;
+  if(currentIndex >= questions.length){
+    return endGame();
+  }
+  const q = questions[currentIndex];
+  await update(ref(db, `rooms/${roomPin}`), {
+    status: 'question',
+    currentIndex,
+    questionStartAt: Date.now()
+  });
+  renderQuestion(q);
+  showScreen('question');
+  listenAnswers(q);
+  startTimer(q.timeLimit || 20, () => revealAnswer(q));
+}
+
+function renderQuestion(q){
+  document.getElementById('qCounter').textContent = `ข้อ ${currentIndex+1} / ${questions.length}`;
+  document.getElementById('qText').textContent = q.text;
+  document.getElementById('choiceGrid').innerHTML = q.choices.map((c,i) =>
+    `<div class="choice c${i}" data-i="${i}">${SHAPES[i]}<span>${escapeHtml(c)}</span></div>`).join('');
+  document.getElementById('answeredBar').textContent = `ตอบแล้ว 0 / ${Object.keys(playersCache).length} คน`;
+}
+
+function startTimer(seconds, onDone){
+  clearInterval(timerInterval);
+  const ring = document.getElementById('ringFg');
+  const num = document.getElementById('ringNum');
+  const circumference = 239;
+  let remaining = seconds;
+  ring.style.stroke = 'var(--teal)';
+  num.textContent = remaining;
+  ring.style.strokeDashoffset = 0;
+  timerInterval = setInterval(() => {
+    remaining--;
+    num.textContent = Math.max(remaining,0);
+    const frac = Math.max(remaining,0) / seconds;
+    ring.style.strokeDashoffset = circumference * (1 - frac);
+    if(remaining <= 5) ring.style.stroke = 'var(--coral)';
+    if(remaining <= 0){
+      clearInterval(timerInterval);
+      onDone();
+    }
+  }, 1000);
+}
+
+let answersUnsub = null;
+function listenAnswers(q){
+  const answersRef = ref(db, `rooms/${roomPin}/answers/${currentIndex}`);
+  answersUnsub = onValue(answersRef, snap => {
+    const answers = snap.val() || {};
+    const total = Object.keys(playersCache).length;
+    document.getElementById('answeredBar').textContent = `ตอบแล้ว ${Object.keys(answers).length} / ${total} คน`;
+  });
+}
+
+async function revealAnswer(q){
+  clearInterval(timerInterval);
+  const snap = await get(ref(db, `rooms/${roomPin}/answers/${currentIndex}`));
+  const answers = snap.val() || {};
+
+  const counts = [0,0,0,0];
+  Object.values(answers).forEach(a => { if(counts[a.choiceIndex] !== undefined) counts[a.choiceIndex]++; });
+  const totalAnswered = Object.values(answers).length || 1;
+
+  document.querySelectorAll('.choice').forEach((el,i) => {
+    const pct = Math.round((counts[i]/totalAnswered)*100);
+    el.innerHTML += `<span class="pct">${pct}%</span>`;
+    if(i === q.correctIndex) el.classList.add('correct'); else el.classList.add('wrong');
+  });
+
+  // ให้คะแนน: ยิ่งตอบเร็วยิ่งได้เยอะ สูงสุด 1000 ลดตามสัดส่วนเวลาที่ใช้เทียบกับเวลาจำกัด
+  const timeLimit = (q.timeLimit || 20) * 1000;
+  const startSnap = await get(ref(db, `rooms/${roomPin}/questionStartAt`));
+  const startAt = startSnap.val();
+  const updates = {};
+  for(const [pid, ans] of Object.entries(answers)){
+    if(ans.choiceIndex === q.correctIndex){
+      const elapsed = Math.min(ans.answeredAt - startAt, timeLimit);
+      const speedFactor = 1 - (elapsed / timeLimit) * 0.5; // 0.5–1.0
+      const points = Math.round(1000 * speedFactor);
+      const prevScore = (playersCache[pid] && playersCache[pid].score) || 0;
+      updates[`players/${pid}/score`] = prevScore + points;
+      updates[`players/${pid}/lastPoints`] = points;
+    } else {
+      updates[`players/${pid}/lastPoints`] = 0;
+    }
+  }
+  if(Object.keys(updates).length) await update(ref(db, `rooms/${roomPin}`), updates);
+  await update(ref(db, `rooms/${roomPin}`), { status: 'reveal' });
+
+  setTimeout(() => showLeaderboard(), 2500);
+}
+
+async function showLeaderboard(){
+  const snap = await get(ref(db, `rooms/${roomPin}/players`));
+  playersCache = snap.val() || {};
+  const sorted = Object.entries(playersCache).sort((a,b) => (b[1].score||0) - (a[1].score||0));
+  document.getElementById('board').innerHTML = sorted.map(([id,p],i) =>
+    `<div class="row"><span class="rank">${i+1}</span><span class="name">${escapeHtml(p.name)}</span><span class="score">${p.score||0}</span></div>`).join('');
+  await update(ref(db, `rooms/${roomPin}`), { status: 'leaderboard' });
+  showScreen('leaderboard');
+}
+
+async function endGame(){
+  const snap = await get(ref(db, `rooms/${roomPin}/players`));
+  const players = snap.val() || {};
+  const sorted = Object.entries(players).sort((a,b) => (b[1].score||0) - (a[1].score||0)).slice(0,3);
+  const podium = document.getElementById('podium');
+  const classes = ['gold','silver','bronze'];
+  const order = [1,0,2]; // silver, gold, bronze visual order via CSS order property already set
+  podium.innerHTML = sorted.map(([id,p],i) =>
+    `<div class="pod ${classes[i]}"><div class="pname">${escapeHtml(p.name)}</div><div>${p.score||0}</div></div>`).join('');
+  await update(ref(db, `rooms/${roomPin}`), { status: 'ended' });
+  showScreen('ended');
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+</script>
+</body>
+</html>
